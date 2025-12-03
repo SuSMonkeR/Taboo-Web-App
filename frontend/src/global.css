@@ -1,0 +1,552 @@
+/* ===========================================
+   Global Reset
+=========================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body,
+html {
+  height: 100%;
+  background: #0f172a; /* Deep navy */
+  color: #e2e8f0;      /* Light gray text */
+  font-family: "Inter", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===========================================
+   LOGIN PAGE
+=========================================== */
+
+.login-root {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f172a;
+}
+
+.login-box {
+  background: #1e293b;
+  padding: 34px 38px;
+  border-radius: 16px;
+  width: 420px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  text-align: center;
+  border: 1px solid #334155;
+}
+
+.login-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 22px;
+  color: #f8fafc;
+}
+
+.login-input {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  border-radius: 8px;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: #e2e8f0;
+  outline: none;
+}
+
+.login-input:focus {
+  border-color: #3b82f6;
+}
+
+.login-btn {
+  margin-top: 20px;
+  width: 100%;
+  padding: 12px;
+  background: #1e293b;
+  border: 1px solid #475569;
+  color: #e2e8f0;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.login-btn:hover {
+  background: #334155;
+}
+
+/* ===========================================
+   APP SHELL LAYOUT
+=========================================== */
+
+.shell-root {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+.shell-main {
+  flex: 1;
+  padding: 24px 32px;
+  background: #0f172a;
+  overflow-y: auto;
+}
+
+/* ===========================================
+   SIDEBAR
+=========================================== */
+
+.sidebar {
+  width: 240px;
+  background: #020617; /* Black-blue */
+  border-right: 1px solid #1e293b;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.sidebar-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.logo-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #22c55e;
+}
+
+.logo-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.logo-sub {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-btn {
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  text-align: left;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #e2e8f0;
+}
+
+.sidebar-btn:hover {
+  background: #111827;
+}
+
+.sidebar-btn-active {
+  background: #2563eb;
+}
+
+/* ===========================================
+   PAGE BASE
+=========================================== */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+/* ===========================================
+   PLAY LAYOUT (matches your sketch)
+=========================================== */
+
+.play-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(260px, 1.4fr);
+  gap: 30px;
+}
+
+/* ------- CENTER COLUMN (Card → Buttons → Copy → P/S/R) ------- */
+
+.play-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Big rounded card preview box */
+
+.card-preview-box {
+  background: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 22px;
+  padding: 22px;
+  min-height: 150px;
+}
+
+.card-preview-title {
+  font-size: 14px;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.card-preview-word {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.card-preview-subtitle {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.card-preview-list {
+  margin-left: 18px;
+  font-size: 15px;
+}
+
+/* Draw + Skip buttons row (D / K) */
+
+.draw-skip-row {
+  display: flex;
+  gap: 16px;
+}
+
+/* Big orange copy/paste box */
+
+.copy-block {
+  border-radius: 14px;
+  padding: 18px;
+  background: #020617;
+  border: 2px solid #1e293b;
+}
+
+.copy-block-emphasis {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.32);
+}
+
+.copy-block-header {
+  font-size: 14px;
+  color: #fbbf24;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.copy-icon {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.copy-block-textarea {
+  width: 100%;
+  margin-top: 4px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #e5e7eb;
+  resize: vertical;
+  min-height: 140px;
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 14px;
+}
+
+/* P / S / R bottom buttons */
+
+.play-controls-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.play-status-row {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.play-error {
+  color: #f97373;
+}
+
+/* ===========================================
+   RIGHT COLUMN — deck selection panel
+=========================================== */
+
+.deck-panel {
+  background: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 140px);
+}
+
+.deck-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.deck-panel-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.deck-panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.deck-random-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.random-input {
+  flex: 0 0 90px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 13px;
+}
+
+.deck-list {
+  flex: 1;
+  border-radius: 10px;
+  border: 1px dashed #334155;
+  padding: 10px;
+  overflow-y: auto;
+  font-size: 14px;
+}
+
+/* deck list – categories & items */
+
+.deck-category-block {
+  margin-bottom: 10px;
+}
+
+.deck-category-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.deck-category-name {
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.deck-category-decks {
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.deck-item-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.deck-item-name {
+  color: #cbd5e1;
+}
+
+.deck-item-meta {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.deck-empty {
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* ===========================================
+   BUTTON STYLES (green / red / yellow / outline)
+=========================================== */
+
+.pill {
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  border: none;
+}
+
+.big-pill {
+  padding: 10px 26px;
+  font-size: 16px;
+}
+
+.small-pill {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.pill-green {
+  background: #22c55e;
+  color: #052e16;
+}
+
+.pill-green:hover {
+  background: #16a34a;
+}
+
+.pill-red {
+  background: #ef4444;
+  color: #fee2e2;
+}
+
+.pill-red:hover {
+  background: #b91c1c;
+}
+
+.pill-yellow {
+  background: #eab308;
+  color: #422006;
+}
+
+.pill-yellow:hover {
+  background: #ca8a04;
+}
+
+.pill-outline {
+  background: transparent;
+  border: 1px solid #64748b;
+  color: #cbd5e1;
+}
+
+.pill-outline:hover {
+  background: #1e293b;
+}
+
+/* ===========================================
+   PLACEHOLDER ONLY
+=========================================== */
+
+.placeholder {
+  color: #64748b;
+}
+
+/* ===========================================
+   Manage page basics
+=========================================== */
+
+.manage-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.manage-layout {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.category-column {
+  flex: 1;
+  min-width: 220px;
+  background: #020617;
+  border-radius: 14px;
+  padding: 12px;
+  border: 1px solid #1e293b;
+}
+
+.category-header {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #e5e7eb;
+}
+
+.category-decks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.deck-row {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #0b1120;
+  border: 1px solid #1f2937;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.deck-title {
+  font-size: 14px;
+}
+
+.deck-meta {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.deck-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ===========================================
+   Drag Handling for Manage Page
+=========================================== */
+
+.deck-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drag-handle {
+  cursor: grab;
+  font-size: 16px;
+  opacity: 0.6;
+}
+
+.deck-row-dragging {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
+.category-select {
+  background: #020617;
+  color: #e5e7eb;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  padding: 3px 8px;
+  font-size: 12px;
+}

@@ -1,24 +1,76 @@
-# Python
+############################################
+# PYTHON / FASTAPI
+############################################
+
+# Byte-compiled / cache
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
 
-# Virtual environments
-venv/
-.env/
+# Pydantic compiled types (sometimes appears)
+*.schema.json
 
-# FastAPI / Uvicorn artifacts
+# Virtual environment folders
+venv/
+env/
+ENV/
+.venv/
+
+# Environment variables
+.env
+.env.*
+
+# FastAPI/Uvicorn logs
 *.log
 
-# Node
-node_modules/
-dist/
-.DS_Store
+############################################
+# FRONTEND (Vite + React)
+############################################
 
-# Vite dev cache
+# Node modules
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
 *.local
 
-# IDE junk
+# Vite cache
+.vite/
+
+# Generated artifacts
+*.cache
+
+############################################
+# EDITOR / OS JUNK
+############################################
+
+# VSCode settings
 .vscode/
+history/
+settings.json
+
+# JetBrains (WebStorm / PyCharm)
 .idea/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+############################################
+# MISC
+############################################
+
+# Optional backups
+*.bak
+*.tmp
+*.swp
+*.swo
+
+# python test caches
+.pytest_cache/
+.cache/

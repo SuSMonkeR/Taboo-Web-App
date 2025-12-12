@@ -42,14 +42,15 @@
   display: grid;
   place-items: center;
   padding: 24px;
+}
 
-  /* focus mode (when typing) */
-}
 .loginFG:focus-within {
-  /* dim the chaos slightly while typing */
+  background-color: rgba(0, 0, 0, 0.1); /* Dim background while typing */
 }
+
 .loginFG:focus-within ~ .loginBG {
-  /* (can't target previous sibling; handled by bg overlays below) */
+  opacity: 0.5;  /* Dim the background */
+  transition: opacity 0.3s ease;
 }
 
 /* -------------------------------------------

@@ -3,3 +3,13 @@ uvicorn[standard]
 pydantic
 pydantic-settings
 httpx
+
+# MongoDB driver
+pymongo[srv]
+
+# Password hashing
+passlib[bcrypt]
+
+# JWT tokens
+python-jose[cryptography]
+requests

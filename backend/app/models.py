@@ -1,4 +1,7 @@
-from typing import List
+from typing import List, Optional
+from datetime import datetime
+
+from bson import ObjectId
 from pydantic import BaseModel, Field
 
 
@@ -26,3 +29,23 @@ class Deck(BaseModel):
 class LibraryState(BaseModel):
     categories: List[str]
     decks: List[Deck]
+
+
+# -------- Workbook models (moved here from models/workbook.py) --------
+
+class WorkbookTab(BaseModel):
+    tab_name: str
+    sheet_gid: int
+    deck_id: Optional[str] = None   # id of deck created for this tab
+
+
+class Workbook(BaseModel):
+    id: Optional[str] = Field(default=None, alias="_id")
+    workbook_id: str                      # Google Sheets ID
+    name: str                             # Workbook title
+    tabs: List[WorkbookTab] = []          # List of sheet tabs
+    last_synced: Optional[datetime] = None
+
+    class Config:
+        json_encoders = {ObjectId: str}
+        allow_population_by_field_name = True

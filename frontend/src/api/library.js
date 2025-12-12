@@ -1,41 +1,60 @@
 // frontend/src/api/library.js
-const API_BASE = "http://127.0.0.1:8000";
 
-// If you’re already storing the auth token somewhere else, adapt this:
+export const API_BASE = "http://127.0.0.1:8000";
+
+// Simple token getter; tweak if you ever change storage key
 function getToken() {
   return window.localStorage.getItem("taboo_token") || "";
 }
 
-function authHeaders() {
+/**
+ * Return Authorization header if we have a token.
+ */
+export function authHeaders() {
   const token = getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-async function handleJsonResponse(resp) {
+/**
+ * Common JSON response handler.
+ * Throws an Error with any .detail from the backend if status is not ok.
+ */
+export async function handleJsonResponse(resp) {
   if (!resp.ok) {
     let msg = "Request failed";
     try {
       const data = await resp.json();
-      if (data && data.detail) msg = data.detail;
+      if (data && data.detail) {
+        msg = data.detail;
+      }
     } catch {
-      msg = await resp.text();
+      try {
+        msg = await resp.text();
+      } catch {
+        // ignore
+      }
     }
     throw new Error(msg || "Request failed");
   }
+
   return resp.json();
 }
 
 // -------- AUTH --------
+
 export async function loginWithPassword(password) {
   const resp = await fetch(`${API_BASE}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ password }),
   });
+
   const data = await handleJsonResponse(resp);
+
   if (data && data.token) {
     window.localStorage.setItem("taboo_token", data.token);
   }
+
   return data;
 }
 
@@ -72,7 +91,6 @@ export async function importDeckFromUrl(
       : 4,
   };
 
-  // Only send name/category if provided
   if (name && name.trim()) {
     body.name = name.trim();
   }

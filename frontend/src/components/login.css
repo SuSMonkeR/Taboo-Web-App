@@ -1,0 +1,533 @@
+/* frontend/src/components/login.css */
+
+/* -------------------------------------------
+   ROOT
+------------------------------------------- */
+.loginPage {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  color: #e5e7eb;
+
+  /* Space base */
+  background: radial-gradient(circle at 30% 10%, #0b1023 0%, #020617 55%, #000 100%);
+
+  /* Parallax vars (set by JS on root) */
+  --mx: 0;  /* -1..1 */
+  --my: 0;  /* -1..1 */
+
+  /* Holo vars (0..1) */
+  --hx: 0.5;
+  --hy: 0.5;
+}
+
+/* -------------------------------------------
+   BACKGROUND LAYER — MUST NOT BLOCK INPUT
+------------------------------------------- */
+.loginBG {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+
+  /* subtle parallax tilt */
+  transform: translate3d(calc(var(--mx) * 10px), calc(var(--my) * 10px), 0);
+}
+
+/* FOREGROUND */
+.loginFG {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+
+  /* focus mode (when typing) */
+}
+.loginFG:focus-within {
+  /* dim the chaos slightly while typing */
+}
+.loginFG:focus-within ~ .loginBG {
+  /* (can't target previous sibling; handled by bg overlays below) */
+}
+
+/* -------------------------------------------
+   NEBULAS
+------------------------------------------- */
+.nebula {
+  position: absolute;
+  inset: -70px;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transform: scale(1.08);
+  filter: saturate(1.35) contrast(1.08);
+  animation: nebulaCycle 46s linear infinite;
+
+  /* depth parallax */
+  translate: calc(var(--mx) * -10px) calc(var(--my) * -8px);
+}
+
+.n1 { background-image: url("/nebula1.png"); animation-delay: 0s; }
+.n2 { background-image: url("/nebula2.png"); animation-delay: -11.5s; }
+.n3 { background-image: url("/nebula3.png"); animation-delay: -23s; }
+.n4 { background-image: url("/nebula4.png"); animation-delay: -34.5s; }
+
+@keyframes nebulaCycle {
+  0%   { opacity: 0; transform: scale(1.08) translate3d(0,0,0); }
+  8%   { opacity: 1; }
+  28%  { opacity: 1; transform: scale(1.13) translate3d(18px,-14px,0); }
+  36%  { opacity: 0; }
+  100% { opacity: 0; transform: scale(1.08) translate3d(0,0,0); }
+}
+
+/* -------------------------------------------
+   STAR LAYERS (2 drifting fields)
+------------------------------------------- */
+.stars {
+  position: absolute;
+  inset: 0;
+  opacity: 0.65;
+  mix-blend-mode: screen;
+  will-change: background-position, transform;
+}
+
+.starsA {
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(255,255,255,0.20) 0, transparent 55%),
+    radial-gradient(circle at 78% 84%, rgba(59,130,246,0.22) 0, transparent 60%),
+    radial-gradient(circle at 58% 30%, rgba(236,72,153,0.16) 0, transparent 62%),
+    radial-gradient(circle at 25% 70%, rgba(168,85,247,0.20) 0, transparent 62%),
+    radial-gradient(circle at 85% 20%, rgba(255,255,255,0.12) 0, transparent 65%);
+  animation: starsDriftA 40s linear infinite;
+  transform: translate3d(calc(var(--mx) * 6px), calc(var(--my) * 6px), 0);
+}
+
+.starsB {
+  opacity: 0.35;
+  background-image:
+    radial-gradient(circle at 10% 30%, rgba(255,255,255,0.12) 0, transparent 58%),
+    radial-gradient(circle at 60% 78%, rgba(34,211,238,0.14) 0, transparent 62%),
+    radial-gradient(circle at 40% 20%, rgba(250,204,21,0.10) 0, transparent 65%),
+    radial-gradient(circle at 90% 65%, rgba(255,255,255,0.10) 0, transparent 62%);
+  animation: starsDriftB 56s linear infinite;
+  transform: translate3d(calc(var(--mx) * 10px), calc(var(--my) * 10px), 0);
+}
+
+@keyframes starsDriftA {
+  from { background-position: 0 0; }
+  to   { background-position: -520px 180px; }
+}
+@keyframes starsDriftB {
+  from { background-position: 0 0; }
+  to   { background-position: 420px -220px; }
+}
+
+/* -------------------------------------------
+   SPACE DUST (subtle moving noise)
+------------------------------------------- */
+.spaceDust {
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  mix-blend-mode: screen;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.16) 0 1px, transparent 2px),
+    radial-gradient(circle, rgba(255,255,255,0.10) 0 1px, transparent 2px);
+  background-size: 180px 180px, 240px 240px;
+  background-position: 0 0, 80px 140px;
+  filter: blur(0.2px);
+  animation: dustDrift 70s linear infinite;
+  transform: translate3d(calc(var(--mx) * 14px), calc(var(--my) * 14px), 0);
+}
+
+@keyframes dustDrift {
+  from { background-position: 0 0, 80px 140px; }
+  to   { background-position: -720px 260px, 520px -420px; }
+}
+
+/* -------------------------------------------
+   VIGNETTE + GRAIN
+------------------------------------------- */
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,0,0,0.78) 100%);
+}
+
+.grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.085;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+}
+
+/* -------------------------------------------
+   PROCEDURAL SHOOTING STARS
+------------------------------------------- */
+.shootingStar {
+  position: absolute;
+  opacity: 0;
+  transform-origin: left center;
+  background: linear-gradient(to right, rgba(255,255,255,0.95), transparent);
+  filter: drop-shadow(0 0 12px rgba(255,255,255,0.35));
+  animation-name: shootProc;
+  animation-timing-function: ease-out;
+  animation-iteration-count: 1;
+}
+
+.shootingStar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -4px;
+  width: 10px;
+  height: 10px;
+  background: rgba(255,255,255,0.95);
+  border-radius: 50%;
+  filter: blur(0.2px) drop-shadow(0 0 12px rgba(255,255,255,0.65));
+}
+
+@keyframes shootProc {
+  0%   { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg); }
+  10%  { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(-220vw, 220px, 0) rotate(0deg); }
+}
+
+/* -------------------------------------------
+   CREW (depth + parallax)
+------------------------------------------- */
+.crew {
+  position: absolute;
+  opacity: 0.95;
+  will-change: transform;
+  filter: drop-shadow(0 18px 28px rgba(0,0,0,0.55));
+  user-select: none;
+
+  /* depth-based parallax (closer moves more) */
+  transform: translate3d(
+    calc(var(--mx) * (16px - (var(--depth, 0) * 2px))),
+    calc(var(--my) * (16px - (var(--depth, 0) * 2px))),
+    0
+  );
+
+  /* makes the sprite pop in dark zones */
+  outline: 0;
+}
+
+.depth0 { opacity: 0.95; }
+.depth1 { opacity: 0.85; filter: drop-shadow(0 14px 22px rgba(0,0,0,0.55)) blur(0.15px); }
+.depth2 { opacity: 0.72; filter: drop-shadow(0 10px 18px rgba(0,0,0,0.55)) blur(0.45px); }
+.depth3 { opacity: 0.60; filter: drop-shadow(0 8px 14px rgba(0,0,0,0.55)) blur(0.75px); }
+.depth4 { opacity: 0.45; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.55)) blur(1px); }
+
+/* drift + spin */
+.spin   { animation-name: var(--driftName), spin; animation-timing-function: linear, linear; animation-iteration-count: infinite, infinite; }
+.noSpin { animation-name: var(--driftName); animation-timing-function: linear; animation-iteration-count: infinite; }
+
+.driftA { --driftName: driftA; }
+.driftB { --driftName: driftB; }
+.driftC { --driftName: driftC; }
+.driftD { --driftName: driftD; }
+.driftE { --driftName: driftE; }
+.driftF { --driftName: driftF; }
+.driftG { --driftName: driftG; }
+
+@keyframes spin {
+  from { rotate: 0deg; }
+  to   { rotate: calc(360deg * var(--spinDir, 1)); }
+}
+
+/* drift paths */
+@keyframes driftA {
+  0%   { transform: translate3d(0, 10px, 0) rotate(-10deg); }
+  50%  { transform: translate3d(72vw, -55px, 0) rotate(-6deg); }
+  100% { transform: translate3d(160vw, 45px, 0) rotate(-12deg); }
+}
+@keyframes driftB {
+  0%   { transform: translate3d(0, -20px, 0) rotate(8deg); }
+  50%  { transform: translate3d(-76vw, 62px, 0) rotate(6deg); }
+  100% { transform: translate3d(-170vw, -12px, 0) rotate(10deg); }
+}
+@keyframes driftC {
+  0%   { transform: translate3d(0, 0px, 0) rotate(4deg); }
+  50%  { transform: translate3d(-70vw, -75px, 0) rotate(2deg); }
+  100% { transform: translate3d(-155vw, 32px, 0) rotate(6deg); }
+}
+@keyframes driftD {
+  0%   { transform: translate3d(0, 30px, 0) rotate(-14deg); }
+  50%  { transform: translate3d(78vw, -65px, 0) rotate(-10deg); }
+  100% { transform: translate3d(175vw, 62px, 0) rotate(-18deg); }
+}
+@keyframes driftE {
+  0%   { transform: translate3d(-10px, 25px, 0) rotate(-2deg); }
+  50%  { transform: translate3d(-180px, -55px, 0) rotate(2deg); }
+  100% { transform: translate3d(-360px, 55px, 0) rotate(-3deg); }
+}
+@keyframes driftF {
+  0%   { transform: translate3d(0, 8px, 0) rotate(2deg); }
+  50%  { transform: translate3d(80vw, 40px, 0) rotate(3deg); }
+  100% { transform: translate3d(185vw, -20px, 0) rotate(1deg); }
+}
+@keyframes driftG {
+  0%   { transform: translate3d(0, -6px, 0) rotate(-2deg); }
+  50%  { transform: translate3d(-85vw, 24px, 0) rotate(-3deg); }
+  100% { transform: translate3d(-185vw, 10px, 0) rotate(-1deg); }
+}
+
+/* -------------------------------------------
+   LOGIN CARD (holo glass)
+------------------------------------------- */
+.loginCard {
+  position: relative;
+  width: 410px;
+  max-width: 95vw;
+  padding: 28px 30px 18px;
+  border-radius: 24px;
+  text-align: center;
+  isolation: isolate;
+
+  background: rgba(12, 18, 35, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.20);
+  box-shadow:
+    0 24px 80px rgba(0,0,0,0.70),
+    0 0 0 1px rgba(255,255,255,0.04) inset;
+
+  backdrop-filter: blur(20px);
+  transform: translate3d(0,0,0);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.loginCard:hover {
+  transform: translate3d(0,-1px,0);
+  border-color: rgba(148, 163, 184, 0.28);
+  box-shadow:
+    0 30px 95px rgba(0,0,0,0.72),
+    0 0 0 1px rgba(255,255,255,0.06) inset;
+}
+
+/* halo behind card */
+.cardHalo {
+  position: absolute;
+  inset: -30px;
+  z-index: -2;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(56,189,248,0.22), transparent 55%),
+    radial-gradient(circle at 70% 80%, rgba(168,85,247,0.20), transparent 58%);
+  filter: blur(18px);
+  opacity: 0.85;
+}
+
+/* holo sheen on top */
+.cardHolo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 24px;
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      700px 500px at calc(var(--hx) * 100%) calc(var(--hy) * 100%),
+      rgba(255,255,255,0.14),
+      rgba(255,255,255,0.06) 35%,
+      transparent 60%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(56,189,248,0.10),
+      rgba(168,85,247,0.09),
+      rgba(236,72,153,0.08)
+    );
+
+  mix-blend-mode: screen;
+  opacity: 0.65;
+}
+
+/* Title */
+.loginTitle {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  margin-bottom: 14px;
+}
+
+/* Form */
+.loginForm {
+  display: grid;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.inputRow {
+  position: relative;
+  display: grid;
+  align-items: center;
+}
+
+.loginInput {
+  width: 100%;
+  padding: 12px 46px 12px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(2, 6, 23, 0.50);
+  color: #e5e7eb;
+  outline: none;
+  pointer-events: auto;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.loginInput:focus {
+  border-color: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+  background: rgba(2, 6, 23, 0.62);
+}
+
+.eyeBtn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(2, 6, 23, 0.35);
+  color: rgba(226, 232, 240, 0.9);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease, filter 120ms ease;
+}
+
+.eyeBtn:hover {
+  background: rgba(2, 6, 23, 0.55);
+  border-color: rgba(148, 163, 184, 0.28);
+  transform: translateY(-50%) scale(1.02);
+}
+
+.loginButton {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: none;
+  font-weight: 800;
+  cursor: pointer;
+  background: linear-gradient(135deg, rgba(56,189,248,0.95), rgba(168,85,247,0.95));
+  color: #020617;
+  box-shadow: 0 16px 40px rgba(56, 189, 248, 0.28);
+  transition: transform 140ms ease, filter 140ms ease;
+}
+
+.loginButton:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+.loginButton:active {
+  transform: translateY(0px) scale(0.99);
+  filter: brightness(0.98);
+}
+
+/* Hints / errors */
+.loginHints {
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+  min-height: 18px;
+}
+
+.hint {
+  font-size: 0.92rem;
+  line-height: 1.2;
+  opacity: 0.95;
+}
+
+.hint.caps {
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.hint.err {
+  color: #fca5a5;
+}
+
+/* Footer */
+.loginFooter {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.badge {
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.subtle {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+/* -------------------------------------------
+   ERROR SHAKE + GLOW (uses data-shake nonce)
+------------------------------------------- */
+.loginCard.isError {
+  border-color: rgba(248, 113, 113, 0.35);
+  box-shadow:
+    0 24px 80px rgba(0,0,0,0.70),
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 0 0 4px rgba(248, 113, 113, 0.08);
+}
+
+/* CSS “retrigger” trick via attribute changes */
+.loginCard[data-shake] {
+  animation: none;
+}
+.loginCard.isError[data-shake] {
+  animation: shake 520ms ease;
+}
+
+@keyframes shake {
+  0%   { transform: translate3d(0,0,0); }
+  10%  { transform: translate3d(-5px, 0, 0); }
+  20%  { transform: translate3d(5px, 0, 0); }
+  30%  { transform: translate3d(-4px, 0, 0); }
+  40%  { transform: translate3d(4px, 0, 0); }
+  50%  { transform: translate3d(-3px, 0, 0); }
+  60%  { transform: translate3d(3px, 0, 0); }
+  70%  { transform: translate3d(-2px, 0, 0); }
+  80%  { transform: translate3d(2px, 0, 0); }
+  90%  { transform: translate3d(-1px, 0, 0); }
+  100% { transform: translate3d(0,0,0); }
+}
+
+/* -------------------------------------------
+   Accessibility / reduced motion
+------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .nebula,
+  .starsA,
+  .starsB,
+  .spaceDust,
+  .crew,
+  .shootingStar,
+  .loginCard,
+  .loginButton,
+  .eyeBtn {
+    animation: none !important;
+    transition: none !important;
+  }
+  .loginBG {
+    transform: none !important;
+  }
+}

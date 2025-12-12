@@ -1,18 +1,20 @@
+# backend/app/api/library.py
 from __future__ import annotations
 
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
 
-from .. import db
-from ..models import Deck
-from ..schemas import (
+# ✅ IMPORTANT: use the real modules, not .api-relative ones
+from app import db
+from app.models import Deck
+from app.schemas import (
     LibraryStateOut,
     ImportFromUrlRequest,
     AddCategoryRequest,
     MoveDeckRequest,
 )
-from ..services.taboo_parser import fetch_csv_text, parse_deck_from_csv
+from app.services.taboo_parser import fetch_csv_text, parse_deck_from_csv
 
 
 router = APIRouter(
@@ -85,41 +87,33 @@ async def import_deck_from_url(body: ImportFromUrlRequest) -> LibraryStateOut:
     """
     # Pull raw data so we're safe even if the Pydantic model doesn't
     # actually define taboo_words_per_card yet.
-    body_data = body.dict()
-    taboo_words_per_card = body_data.get("taboo_words_per_card", 4)
-
-    if taboo_words_per_card is None:
-        taboo_words_per_card = 4
+    taboo_words_per_card = body.taboo_words_per_card or 4
 
     try:
-        taboo_words_per_card = int(taboo_words_per_card)
-    except (TypeError, ValueError):
-        taboo_words_per_card = 4
-
-    if taboo_words_per_card < 1:
+        csv_text = await fetch_csv_text(body.url)
+        cards = parse_deck_from_csv(csv_text, taboo_words_per_card)
+    except Exception as exc:
         raise HTTPException(
             status_code=400,
-            detail="taboo_words_per_card must be at least 1.",
+            detail=f"Failed to import deck from URL: {exc}",
         )
-
-    csv_text = await fetch_csv_text(body.url)
-    cards = parse_deck_from_csv(csv_text, taboo_words_per_card)
 
     if not cards:
         raise HTTPException(
             status_code=400,
-            detail="No cards found in CSV with the expected Taboo layout.",
+            detail="No valid cards found in the provided CSV/Sheets URL.",
         )
 
-    category = body.category or "Uncategorized"
-
     state = db.load_library()
+
+    # Either use provided name or make a generic one
+    deck_name = (body.name or "").strip() or _make_deck_name()
+
+    # Category: if provided and it doesn't exist yet, add it
+    category = (body.category or "").strip() or "Uncategorized"
     if category not in state.categories:
         state.categories.append(category)
 
-    deck_name = body.name.strip() if body.name else _make_deck_name()
-
-    # Store the parsed `cards` list and the taboo_words_per_card setting on the Deck.
     deck = Deck(
         id=str(uuid4()),
         name=deck_name,
@@ -170,7 +164,7 @@ async def delete_category(name: str) -> LibraryStateOut:
     # Move decks back to 'Uncategorized'
     for deck in state.decks:
         if deck.category == name:
-          deck.category = "Uncategorized"
+            deck.category = "Uncategorized"
 
     state.categories = [c for c in state.categories if c != name]
     db.save_library(state)

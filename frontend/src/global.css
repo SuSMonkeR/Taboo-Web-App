@@ -173,7 +173,7 @@ html {
 }
 
 /* ===========================================
-   PLAY LAYOUT (matches your sketch)
+   PLAY LAYOUT
 =========================================== */
 
 .play-layout {
@@ -182,7 +182,7 @@ html {
   gap: 30px;
 }
 
-/* ------- CENTER COLUMN (Card → Buttons → Copy → P/S/R) ------- */
+/* ------- CENTER COLUMN ------- */
 
 .play-main {
   display: flex;
@@ -231,7 +231,7 @@ html {
   gap: 16px;
 }
 
-/* Big orange copy/paste box */
+/* Big copy/paste box */
 
 .copy-block {
   border-radius: 14px;
@@ -393,7 +393,7 @@ html {
 }
 
 /* ===========================================
-   BUTTON STYLES (green / red / yellow / outline)
+   BUTTON STYLES (green / red / yellow / cyan / outline)
 =========================================== */
 
 .pill {
@@ -441,6 +441,16 @@ html {
   background: #ca8a04;
 }
 
+/* cyan for flag buttons / markers */
+.pill-cyan {
+  background: #22d3ee;
+  color: #083344;
+}
+
+.pill-cyan:hover {
+  background: #06b6d4;
+}
+
 .pill-outline {
   background: transparent;
   border: 1px solid #64748b;
@@ -485,9 +495,18 @@ html {
   border: 1px solid #1e293b;
 }
 
+/* header row so title + sort sit inline */
+.category-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .category-header {
   font-weight: 600;
-  margin-bottom: 8px;
+  margin: 0;
   color: #e5e7eb;
 }
 
@@ -495,6 +514,29 @@ html {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* per-category sort control */
+.category-sort {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.category-sort-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #facc15;
+}
+
+.category-sort-select {
+  background: #020617;
+  color: #e5e7eb;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  padding: 3px 8px;
+  font-size: 11px;
 }
 
 .deck-row {
@@ -550,3 +592,31 @@ html {
   padding: 3px 8px;
   font-size: 12px;
 }
+
+/* highlighted when decks are flagged (cyan ring) */
+.deck-row-flagged {
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.8);
+}
+
+/* ===========================================
+   Workbooks "category" block
+=========================================== */
+
+.workbooks-column {
+  max-width: 900px; /* wider, less cramped */
+}
+
+.workbook-row {
+  align-items: center;
+}
+
+.workbook-left {
+  padding-left: 2px;
+}
+
+.workbook-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+

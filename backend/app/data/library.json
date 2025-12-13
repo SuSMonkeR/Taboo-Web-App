@@ -1,634 +1,12 @@
 {
   "categories": [
-    "Uncategorized",
-    "fart",
-    "Disney Princes",
-    "oh dear god"
+    "Uncategorized"
   ],
   "decks": [
     {
-      "id": "0fe3b1c2-003c-43e1-b90c-d41f42d80f5c",
-      "name": "asd",
-      "category": "oh dear god",
-      "card_count": 12,
-      "source_type": "google_sheets",
-      "source": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRnCDJR926dHKrr5JnCT_ymXw_Sba6WRTnELYpW3zY2lGCIc6UVR6AFnK3fyoQyQr8ZTkZNZVjEw-PM/pub?output=csv",
-      "taboo_words_per_card": 4,
-      "cards": [
-        {
-          "word": "Cinderella (Cinderella)",
-          "taboo": [
-            "Glass",
-            "Midnight",
-            "Step Sisters",
-            "Prince"
-          ]
-        },
-        {
-          "word": "Ariel (The Little Mermaid)",
-          "taboo": [
-            "Mermaid",
-            "Sea",
-            "Voice",
-            "Triton"
-          ]
-        },
-        {
-          "word": "Belle (Beauty and the Beast)",
-          "taboo": [
-            "Beast",
-            "Library",
-            "Gaston",
-            "Rose"
-          ]
-        },
-        {
-          "word": "Jasmine (Alladin)",
-          "taboo": [
-            "Aladdin",
-            "Agrabah",
-            "Carpet",
-            "Sultan"
-          ]
-        },
-        {
-          "word": "Snow White (Snow White and the Seven Dwarves)",
-          "taboo": [
-            "Dwarves",
-            "Apple",
-            "Witch",
-            "Mirror"
-          ]
-        },
-        {
-          "word": "Aurora (Sleeping Beeauty)",
-          "taboo": [
-            "Sleeping",
-            "Briar",
-            "Maleficent",
-            "Spindle"
-          ]
-        },
-        {
-          "word": "Rapunzel (Tangled)",
-          "taboo": [
-            "Tower",
-            "Hair",
-            "Flynn",
-            "Lanterns"
-          ]
-        },
-        {
-          "word": "Mulan (Mulan)",
-          "taboo": [
-            "Warrior",
-            "Dragon",
-            "China",
-            "Matchmaker"
-          ]
-        },
-        {
-          "word": "Tiana (Princess and the Frog)",
-          "taboo": [
-            "Frog",
-            "Restraunt",
-            "New Orleans",
-            "Naveen"
-          ]
-        },
-        {
-          "word": "Moana (Moana)",
-          "taboo": [
-            "Ocean",
-            "Maui",
-            "Heart",
-            "Island"
-          ]
-        },
-        {
-          "word": "Maleficent (Sleeping Beauty)",
-          "taboo": [
-            "Aurora",
-            "Dragon",
-            "Curse",
-            "Horns"
-          ]
-        },
-        {
-          "word": "Ursula (The Little Mermaid)",
-          "taboo": [
-            "Ariel",
-            "Sea",
-            "Tentacles",
-            "Voice"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "432dc9ac-2679-43c7-a606-b8fbd33db392",
-      "name": "3Taboo",
-      "category": "Disney Princes",
-      "card_count": 12,
-      "source_type": "google_sheets",
-      "source": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQtsmByY3DFOAl5078DCpa1CoEfUT1p8IzUlRzRjjPScGxt7yok9792LdeE3dxmvQ7unDiO32i_JblQ/pub?output=csv",
-      "taboo_words_per_card": 3,
-      "cards": [
-        {
-          "word": "Sun",
-          "taboo": [
-            "Light",
-            "Heat",
-            "Day"
-          ]
-        },
-        {
-          "word": "Moon",
-          "taboo": [
-            "Night",
-            "Orbit",
-            "Glow"
-          ]
-        },
-        {
-          "word": "Ocean",
-          "taboo": [
-            "Water",
-            "Blue",
-            "Wave"
-          ]
-        },
-        {
-          "word": "Forest",
-          "taboo": [
-            "Trees",
-            "Leaves",
-            "Nature"
-          ]
-        },
-        {
-          "word": "Mountain",
-          "taboo": [
-            "Peak",
-            "Rock",
-            "Climb"
-          ]
-        },
-        {
-          "word": "Fire",
-          "taboo": [
-            "Flame",
-            "Burn",
-            "Heat"
-          ]
-        },
-        {
-          "word": "Robot",
-          "taboo": [
-            "Metal",
-            "Circuit",
-            "Gears"
-          ]
-        },
-        {
-          "word": "Dragon",
-          "taboo": [
-            "Wings",
-            "Fire",
-            "Myth"
-          ]
-        },
-        {
-          "word": "Castle",
-          "taboo": [
-            "King",
-            "Queen",
-            "Moat"
-          ]
-        },
-        {
-          "word": "Flower",
-          "taboo": [
-            "Petals",
-            "Color",
-            "Bloom"
-          ]
-        },
-        {
-          "word": "Storm",
-          "taboo": [
-            "Thunder",
-            "Lightning",
-            "Rain"
-          ]
-        },
-        {
-          "word": "Desert",
-          "taboo": [
-            "Sand",
-            "Heat",
-            "Dry"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "d45ae37c-1d8a-4d65-b20f-c02249cd8914",
-      "name": "6-Taboo-Test",
-      "category": "Disney Princes",
-      "card_count": 12,
-      "source_type": "google_sheets",
-      "source": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRSWH51Wu8WiDmNVycqytFCM7Eee_v77rVoaJS51EAGwQr9SsaCtHXrDErvAoB4NE_CkJrRuB0GrJ5M/pub?output=csv",
-      "taboo_words_per_card": 6,
-      "cards": [
-        {
-          "word": "Belle",
-          "taboo": [
-            "Library",
-            "Books",
-            "Village",
-            "Yellow",
-            "Dress",
-            "Beast"
-          ]
-        },
-        {
-          "word": "Beast",
-          "taboo": [
-            "Castle",
-            "Roar",
-            "Enchanted",
-            "Temper",
-            "Claws",
-            "Petals"
-          ]
-        },
-        {
-          "word": "Gaston",
-          "taboo": [
-            "Hunter",
-            "Muscles",
-            "Antlers",
-            "Mirror",
-            "Ego",
-            "Brute"
-          ]
-        },
-        {
-          "word": "Lumiere",
-          "taboo": [
-            "Candle",
-            "Light",
-            "Flame",
-            "Taper",
-            "Dining",
-            "French"
-          ]
-        },
-        {
-          "word": "Cogsworth",
-          "taboo": [
-            "Clock",
-            "Time",
-            "Gears",
-            "Ticktock",
-            "Chime",
-            "Gears"
-          ]
-        },
-        {
-          "word": "Ms. Potts",
-          "taboo": [
-            "Teapot",
-            "Porcelain",
-            "Mother",
-            "Tea",
-            "Hospitality",
-            "China"
-          ]
-        },
-        {
-          "word": "Chip",
-          "taboo": [
-            "Cup",
-            "Crack",
-            "Handle",
-            "Broken",
-            "Spill",
-            "Chip"
-          ]
-        },
-        {
-          "word": "Maurice",
-          "taboo": [
-            "Inventor",
-            "Machine",
-            "Father",
-            "Workshop",
-            "Cold",
-            "Moustache"
-          ]
-        },
-        {
-          "word": "LeFou",
-          "taboo": [
-            "Sidekick",
-            "Comedy",
-            "Bumbling",
-            "Loyal",
-            "Follower",
-            "Crash"
-          ]
-        },
-        {
-          "word": "The Enchantress",
-          "taboo": [
-            "Curse",
-            "Rose",
-            "Magic",
-            "Witch",
-            "Spell",
-            "Forest"
-          ]
-        },
-        {
-          "word": "Prince Adam",
-          "taboo": [
-            "Transformation",
-            "Beastly",
-            "Royalty",
-            "Prince",
-            "Human",
-            "Crown"
-          ]
-        },
-        {
-          "word": "Wardrobe",
-          "taboo": [
-            "Dress",
-            "Closet",
-            "Outfit",
-            "Costume",
-            "Ruffles",
-            "Silk"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "4df05232-6206-4c44-b0d5-af894143e943",
-      "name": "5-Taboo-Test",
-      "category": "fart",
-      "card_count": 12,
-      "source_type": "google_sheets",
-      "source": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRK8MgSZIaZKkPHB6rXKhPP58ysb9jD2RPiDF7_4XgX1hYSR25P8MqQXlnAseCcY5GKDsk_DT98L7N3/pub?output=csv",
-      "taboo_words_per_card": 5,
-      "cards": [
-        {
-          "word": "Woody",
-          "taboo": [
-            "Sheriff",
-            "Cowboy",
-            "Pullstring",
-            "Andy",
-            "Jessie"
-          ]
-        },
-        {
-          "word": "Buzz Lightyear",
-          "taboo": [
-            "Space",
-            "Infinity",
-            "Star",
-            "Helmet",
-            "Alien"
-          ]
-        },
-        {
-          "word": "Mr. Incredible",
-          "taboo": [
-            "Robo",
-            "Strength",
-            "Hero",
-            "Super",
-            "Dash"
-          ]
-        },
-        {
-          "word": "Elastigirl",
-          "taboo": [
-            "Stretch",
-            "Family",
-            "Mask",
-            "Elastic",
-            "Jack-Jack"
-          ]
-        },
-        {
-          "word": "Lightning McQueen",
-          "taboo": [
-            "Racer",
-            "Speed",
-            "Ka-Chow",
-            "Track",
-            "Pitstop"
-          ]
-        },
-        {
-          "word": "Remy",
-          "taboo": [
-            "Chef",
-            "Paris",
-            "Food",
-            "Ratatouille",
-            "Collette"
-          ]
-        },
-        {
-          "word": "WALL-E",
-          "taboo": [
-            "Robot",
-            "Trash",
-            "Cube",
-            "Earth",
-            "EVE"
-          ]
-        },
-        {
-          "word": "Carl Fredricksen",
-          "taboo": [
-            "Balloons",
-            "Adventure",
-            "House",
-            "Walker",
-            "Ellie"
-          ]
-        },
-        {
-          "word": "Joy",
-          "taboo": [
-            "Emotion",
-            "Memory",
-            "Headquarters",
-            "Core",
-            "Happiness"
-          ]
-        },
-        {
-          "word": "Sadness",
-          "taboo": [
-            "Tears",
-            "Blue",
-            "Cry",
-            "Sad",
-            "Depression"
-          ]
-        },
-        {
-          "word": "Sulley",
-          "taboo": [
-            "Monster",
-            "Fur",
-            "Scare",
-            "Roar",
-            "Boo"
-          ]
-        },
-        {
-          "word": "Mike Wazowski",
-          "taboo": [
-            "Green",
-            "Eye",
-            "Laugh",
-            "Jokes",
-            "Doors"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "1c7853ff-f1e1-4410-9355-2fe3c6f6aea7",
-      "name": "4-Taboo-Test",
-      "category": "oh dear god",
-      "card_count": 12,
-      "source_type": "google_sheets",
-      "source": "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3vZxnsYm8C4yvAe01OMTvP2zM_O9pzEPw91sdhOtRWKeOYil5ly3xWk3Wti2RlYMVctwgFwcTXvyb/pub?output=csv",
-      "taboo_words_per_card": 4,
-      "cards": [
-        {
-          "word": "Aladdin",
-          "taboo": [
-            "Agrabah",
-            "Genie",
-            "Carpet",
-            "Streetrat"
-          ]
-        },
-        {
-          "word": "Prince Eric",
-          "taboo": [
-            "Ship",
-            "Ariel",
-            "Sea",
-            "Trident"
-          ]
-        },
-        {
-          "word": "Prince Phillip",
-          "taboo": [
-            "Sword",
-            "Dragon",
-            "Sleep",
-            "Dragonfire"
-          ]
-        },
-        {
-          "word": "Prince Charming",
-          "taboo": [
-            "Slipper",
-            "Glass",
-            "Wedding",
-            "Midnight"
-          ]
-        },
-        {
-          "word": "Beast",
-          "taboo": [
-            "Castle",
-            "Curse",
-            "Belle",
-            "Ballroom"
-          ]
-        },
-        {
-          "word": "Flynn Rider",
-          "taboo": [
-            "Thief",
-            "Rapunzel",
-            "Smolder",
-            "Tower"
-          ]
-        },
-        {
-          "word": "Li Shang",
-          "taboo": [
-            "Warrior",
-            "Training",
-            "Honor",
-            "Commander"
-          ]
-        },
-        {
-          "word": "Prince Naveen",
-          "taboo": [
-            "Frog",
-            "Bayou",
-            "Jazz",
-            "Tiana"
-          ]
-        },
-        {
-          "word": "Kristoff",
-          "taboo": [
-            "Ice",
-            "Reindeer",
-            "Mountains",
-            "Sven"
-          ]
-        },
-        {
-          "word": "Prince Hans",
-          "taboo": [
-            "Villain",
-            "Betrayal",
-            "Lie",
-            "Frozen"
-          ]
-        },
-        {
-          "word": "Simba",
-          "taboo": [
-            "Lion",
-            "Pride",
-            "Savanna",
-            "Roar"
-          ]
-        },
-        {
-          "word": "Hercules",
-          "taboo": [
-            "Strength",
-            "God",
-            "Hero",
-            "Olympus"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "cea95399-3ed4-44f1-89a9-b459bab9f34d",
+      "id": "e7888721-f864-44de-8385-9637eb4eb25d",
       "name": "Disney Princess",
-      "category": "Disney Princes",
+      "category": "Uncategorized",
       "card_count": 10,
       "source_type": "google_sheets",
       "source": "https://docs.google.com/spreadsheets/d/10Uc2ajHk45jDMvzZsemG8Rdv4vLpvNYG1bcFIXm9m40/edit#gid=0",
@@ -727,9 +105,9 @@
       ]
     },
     {
-      "id": "07270e17-aa43-4ec2-9347-96f0ccb627df",
+      "id": "fb9ba5b6-339e-4803-a774-c1aedf26bb07",
       "name": "Mythical Creatures",
-      "category": "fart",
+      "category": "Uncategorized",
       "card_count": 10,
       "source_type": "google_sheets",
       "source": "https://docs.google.com/spreadsheets/d/10Uc2ajHk45jDMvzZsemG8Rdv4vLpvNYG1bcFIXm9m40/edit#gid=736362413",
@@ -828,7 +206,7 @@
       ]
     },
     {
-      "id": "80aebf73-0a01-4620-abc0-d332ccb33901",
+      "id": "62c175f9-56b5-4c14-897c-26d440b77e8b",
       "name": "Retro Arcade",
       "category": "Uncategorized",
       "card_count": 10,
@@ -929,7 +307,7 @@
       ]
     },
     {
-      "id": "3c7a8b2d-9eac-4452-b694-5be73c5fc9df",
+      "id": "3c39c6ff-f868-450f-9804-aff58be6822c",
       "name": "Underwater World",
       "category": "Uncategorized",
       "card_count": 10,
@@ -1030,7 +408,7 @@
       ]
     },
     {
-      "id": "6c656110-86f7-44b5-b8f4-ddbf6455f28c",
+      "id": "003a4cea-b6c7-4636-a49a-fa1fe5b629ac",
       "name": "Pixar Legends",
       "category": "Uncategorized",
       "card_count": 10,
@@ -1141,7 +519,7 @@
       ]
     },
     {
-      "id": "8b752fb5-9d6f-4b96-bec2-90d8f4e0c5dc",
+      "id": "2959c844-9d77-4462-82f5-a4a7ba11bae3",
       "name": "Marvel Male Heroes",
       "category": "Uncategorized",
       "card_count": 10,
@@ -1252,9 +630,9 @@
       ]
     },
     {
-      "id": "5d5611c0-4d7a-4f82-8384-e7a2eccb7628",
+      "id": "0c8149c2-d902-4f5a-87f4-70d30f1ca8ab",
       "name": "Galactic Explorer",
-      "category": "oh dear god",
+      "category": "Uncategorized",
       "card_count": 10,
       "source_type": "google_sheets",
       "source": "https://docs.google.com/spreadsheets/d/10Uc2ajHk45jDMvzZsemG8Rdv4vLpvNYG1bcFIXm9m40/edit#gid=311646419",
@@ -1353,9 +731,9 @@
       ]
     },
     {
-      "id": "91a984c4-1af8-4a04-a0c3-a190a4f90933",
+      "id": "90aa8809-2646-4b89-b1e2-2c46123292ee",
       "name": "Enchanted Forest",
-      "category": "Disney Princes",
+      "category": "Uncategorized",
       "card_count": 10,
       "source_type": "google_sheets",
       "source": "https://docs.google.com/spreadsheets/d/10Uc2ajHk45jDMvzZsemG8Rdv4vLpvNYG1bcFIXm9m40/edit#gid=2011865235",

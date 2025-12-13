@@ -1,0 +1,205 @@
+/* ===========================================
+   Manage page basics
+=========================================== */
+
+.manage-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.manage-layout {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.category-column {
+  flex: 1;
+  min-width: 220px;
+  background: #020617;
+  border-radius: 14px;
+  padding: 12px;
+  border: 1px solid #1e293b;
+  position: relative; /* needed for centered collapse button */
+}
+
+/* header row so title + sort sit inline */
+.category-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.category-header {
+  font-weight: 600;
+  margin: 0;
+  color: #e5e7eb;
+}
+
+.category-decks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* per-category sort control */
+.category-sort {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.category-sort-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #facc15;
+}
+
+.category-sort-select {
+  background: #020617;
+  color: #e5e7eb;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  padding: 3px 8px;
+  font-size: 11px;
+}
+
+/* ===========================================
+   Category collapse / expand button
+=========================================== */
+
+.category-collapse-btn {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 28px;
+
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(2, 6, 23, 0.45);
+
+  display: grid;
+  place-items: center;
+
+  cursor: pointer;
+  z-index: 2;
+
+  /* 🔑 force arrow visibility */
+  color: #e2e8f0;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+  user-select: none;
+
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7);
+}
+
+.category-collapse-btn:hover {
+  background: rgba(15, 23, 42, 0.75);
+}
+
+/* ===========================================
+   Deck rows
+=========================================== */
+
+.deck-row {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #0b1120;
+  border: 1px solid #1f2937;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.deck-title {
+  font-size: 14px;
+}
+
+.deck-meta {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.deck-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* (Used by inline delete panel in ManageView) */
+.modal-select {
+  background: #020617;
+  color: #e5e7eb;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  padding: 6px 10px;
+  font-size: 12px;
+  outline: none;
+}
+
+/* ===========================================
+   Drag Handling for Manage Page
+=========================================== */
+
+.deck-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drag-handle {
+  cursor: grab;
+  font-size: 16px;
+  opacity: 0.6;
+}
+
+.deck-row-dragging {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
+.category-select {
+  background: #020617;
+  color: #e5e7eb;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+/* highlighted when decks are flagged (cyan ring) */
+.deck-row-flagged {
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.8);
+}
+
+/* ===========================================
+   Workbooks "category" block
+=========================================== */
+
+.workbooks-column {
+  max-width: 900px; /* wider, less cramped */
+}
+
+.workbook-row {
+  align-items: center;
+}
+
+.workbook-left {
+  padding-left: 2px;
+}
+
+.workbook-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}

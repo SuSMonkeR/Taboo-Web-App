@@ -110,7 +110,7 @@ export default function PasswordManagerTab({ token, role }) {
         setError(data.detail || "Failed to request admin reset.");
       } else {
         setResetRequestStatus(
-          "If email is configured, a reset link/token has been sent to Kendra."
+          "If email is configured, a reset link/token has been sent to MiraFknJane."
         );
       }
     } catch (err) {
@@ -236,7 +236,7 @@ export default function PasswordManagerTab({ token, role }) {
         <section style={styles.section}>
           <h3 style={styles.subheading}>Admin password reset</h3>
           <p style={styles.helpText}>
-            Only Kendra (via the configured email) can approve an admin
+            Only MiraFknJane (via the configured email) can approve an admin
             password change.
           </p>
 
@@ -245,7 +245,7 @@ export default function PasswordManagerTab({ token, role }) {
             style={styles.secondaryButton}
             onClick={handleRequestAdminReset}
           >
-            Send reset email to Kendra
+            Send reset email to MiraFknJane
           </button>
 
           {resetRequestStatus && (
@@ -254,7 +254,7 @@ export default function PasswordManagerTab({ token, role }) {
 
           <div style={{ marginTop: "1.5rem" }}>
             <p style={styles.helpText}>
-              When Kendra receives the reset token, paste it here with the new
+              When MiraFknJane receives the reset token, paste it here with the new
               admin password:
             </p>
 

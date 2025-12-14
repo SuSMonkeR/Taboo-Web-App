@@ -1,6 +1,6 @@
 // frontend/src/api/library.js
 
-export const API_BASE = "http://127.0.0.1:8000";
+export const API_BASE = process.env.REACT_APP_API_BASE || "http://127.0.0.1:8000";
 
 // Simple token getter; tweak if you ever change storage key
 function getToken() {

@@ -1,7 +1,6 @@
-// src/components/PasswordManagerTab.jsx
-import { useState, useEffect } from "react";
-
-const API_BASE = "http://127.0.0.1:8000";
+// frontend/src/components/PasswordManagerTab.jsx
+import { useEffect, useMemo, useState } from "react";
+import { API_BASE, authHeaders, handleJsonResponse } from "../api/library";
 
 export default function PasswordManagerTab({ token, role }) {
   const [currentStaffPassword, setCurrentStaffPassword] = useState("");
@@ -18,143 +17,128 @@ export default function PasswordManagerTab({ token, role }) {
   const [adminResetStatus, setAdminResetStatus] = useState("");
 
   const [error, setError] = useState("");
+  const [loadingStaffPassword, setLoadingStaffPassword] = useState(false);
 
   const isAdminLike = role === "admin" || role === "dev";
 
-  // --- Helpers ---
+  // If you pass token as a prop, prefer it; otherwise fall back to localStorage behavior
+  const mergedAuthHeaders = useMemo(() => {
+    const base = authHeaders(); // reads localStorage taboo_token
+    if (token) return { Authorization: `Bearer ${token}` };
+    return base;
+  }, [token]);
 
-  function authHeaders() {
-    const headers = { "Content-Type": "application/json" };
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-    return headers;
-  }
+  const api = async (path, opts = {}) => {
+    const resp = await fetch(`${API_BASE}${path}`, {
+      ...opts,
+      headers: {
+        "Content-Type": "application/json",
+        ...(opts.headers || {}),
+        ...mergedAuthHeaders,
+      },
+    });
+    return handleJsonResponse(resp);
+  };
 
   // --- Fetch current staff password on mount (admin/dev only) ---
-
   useEffect(() => {
-    if (!isAdminLike || !token) return;
+    if (!isAdminLike) return;
 
-    const fetchStaffPassword = async () => {
+    let cancelled = false;
+
+    (async () => {
+      setError("");
+      setStaffStatus("");
+      setLoadingStaffPassword(true);
+
       try {
-        const res = await fetch(`${API_BASE}/auth/get-staff-password`, {
-          method: "GET",
-          headers: authHeaders(),
-        });
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          console.warn("Failed to fetch staff password:", data.detail || res.status);
-        } else {
-          setCurrentStaffPassword(data.password || "");
-        }
-      } catch (err) {
-        console.warn("Error fetching staff password", err);
+        const data = await api("/auth/get-staff-password", { method: "GET" });
+        if (!cancelled) setCurrentStaffPassword(data?.password || "");
+      } catch (e) {
+        if (!cancelled) setError(e?.message || "Failed to fetch staff password.");
+      } finally {
+        if (!cancelled) setLoadingStaffPassword(false);
       }
-    };
+    })();
 
-    fetchStaffPassword();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdminLike, token]);
 
   // --- Staff password change ---
-
   const handleStaffPasswordChange = async (e) => {
     e.preventDefault();
     setError("");
     setStaffStatus("");
 
-    if (!newStaffPassword) {
+    if (!newStaffPassword?.trim()) {
       setError("New staff password cannot be empty.");
       return;
     }
 
     try {
-      const res = await fetch(`${API_BASE}/auth/change-staff-password`, {
+      await api("/auth/change-staff-password", {
         method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({ new_password: newStaffPassword }),
+        body: JSON.stringify({ new_password: newStaffPassword.trim() }),
       });
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data.detail || "Failed to update staff password.");
-      } else {
-        setStaffStatus("Staff password updated.");
-        setCurrentStaffPassword(newStaffPassword);
-        setNewStaffPassword("");
-      }
-    } catch (err) {
-      setError("Error updating staff password.");
+      setStaffStatus("Staff password updated.");
+      setCurrentStaffPassword(newStaffPassword.trim());
+      setNewStaffPassword("");
+    } catch (e2) {
+      setError(e2?.message || "Failed to update staff password.");
     }
   };
 
   // --- Request admin reset email ---
-
   const handleRequestAdminReset = async () => {
     setError("");
     setResetRequestStatus("");
+    setAdminResetStatus("");
 
     try {
-      const res = await fetch(`${API_BASE}/auth/request-admin-reset`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data.detail || "Failed to request admin reset.");
-      } else {
-        setResetRequestStatus(
-          "If email is configured, a reset link/token has been sent to MiraFknJane."
-        );
-      }
-    } catch (err) {
-      setError("Error requesting admin reset.");
+      await api("/auth/request-admin-reset", { method: "POST" });
+      setResetRequestStatus(
+        "If email is configured, a reset token has been sent to MiraFknJane."
+      );
+    } catch (e) {
+      setError(e?.message || "Error requesting admin reset.");
     }
   };
 
-  // --- Complete admin password reset (using token from email) ---
-
+  // --- Complete admin password reset (token from email) ---
   const handleCompleteAdminReset = async (e) => {
     e.preventDefault();
     setError("");
     setAdminResetStatus("");
 
-    if (!adminResetToken || !newAdminPassword) {
+    if (!adminResetToken?.trim() || !newAdminPassword?.trim()) {
       setError("Token and new admin password are required.");
       return;
     }
 
     try {
-      const res = await fetch(`${API_BASE}/auth/reset-admin-password`, {
+      // This endpoint should NOT require auth, so we do a direct fetch without auth headers.
+      const resp = await fetch(`${API_BASE}/auth/reset-admin-password`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" }, // no auth header here
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          token: adminResetToken,
-          new_password: newAdminPassword,
+          token: adminResetToken.trim(),
+          new_password: newAdminPassword.trim(),
         }),
       });
 
-      const data = await res.json().catch(() => ({}));
+      await handleJsonResponse(resp);
 
-      if (!res.ok) {
-        setError(data.detail || "Failed to reset admin password.");
-      } else {
-        setAdminResetStatus("Admin password updated.");
-        setAdminResetToken("");
-        setNewAdminPassword("");
-      }
-    } catch (err) {
-      setError("Error resetting admin password.");
+      setAdminResetStatus("Admin password updated.");
+      setAdminResetToken("");
+      setNewAdminPassword("");
+    } catch (e2) {
+      setError(e2?.message || "Error resetting admin password.");
     }
   };
-
-  // --- Permission gate ---
 
   if (!isAdminLike) {
     return (
@@ -167,21 +151,17 @@ export default function PasswordManagerTab({ token, role }) {
     );
   }
 
-  // --- UI ---
-
   return (
     <div style={styles.wrapper}>
       <div style={styles.card}>
         <h2 style={styles.heading}>Password Manager</h2>
 
-        {/* STAFF PASSWORD SECTION */}
         <section style={styles.section}>
           <h3 style={styles.subheading}>Staff password</h3>
           <p style={styles.helpText}>
             This password is used by all staff to access the Play tab.
           </p>
 
-          {/* Current password row */}
           <div style={styles.currentRow}>
             <span style={styles.labelInline}>Current password:</span>
             <input
@@ -189,12 +169,14 @@ export default function PasswordManagerTab({ token, role }) {
               value={currentStaffPassword}
               readOnly
               style={styles.currentInput}
+              placeholder={loadingStaffPassword ? "Loading…" : ""}
             />
             <button
               type="button"
               style={styles.smallButton}
               onClick={() => setShowStaffPassword((v) => !v)}
               title={showStaffPassword ? "Hide" : "Show"}
+              disabled={!currentStaffPassword}
             >
               {showStaffPassword ? "🙈" : "👁"}
             </button>
@@ -232,7 +214,6 @@ export default function PasswordManagerTab({ token, role }) {
 
         <hr style={styles.divider} />
 
-        {/* ADMIN PASSWORD RESET SECTION */}
         <section style={styles.section}>
           <h3 style={styles.subheading}>Admin password reset</h3>
           <p style={styles.helpText}>
@@ -248,9 +229,7 @@ export default function PasswordManagerTab({ token, role }) {
             Send reset email to MiraFknJane
           </button>
 
-          {resetRequestStatus && (
-            <p style={styles.success}>{resetRequestStatus}</p>
-          )}
+          {resetRequestStatus && <p style={styles.success}>{resetRequestStatus}</p>}
 
           <div style={{ marginTop: "1.5rem" }}>
             <p style={styles.helpText}>
@@ -296,9 +275,7 @@ export default function PasswordManagerTab({ token, role }) {
               </button>
             </form>
 
-            {adminResetStatus && (
-              <p style={styles.success}>{adminResetStatus}</p>
-            )}
+            {adminResetStatus && <p style={styles.success}>{adminResetStatus}</p>}
           </div>
         </section>
 
@@ -309,29 +286,19 @@ export default function PasswordManagerTab({ token, role }) {
 }
 
 const styles = {
-  wrapper: {
-    padding: "1.5rem",
-  },
+  wrapper: { padding: "1.5rem" },
   card: {
     maxWidth: 640,
     margin: "0 auto",
     padding: "1.5rem 2rem",
     borderRadius: 12,
-    background: "#0f1624", // dark card like the other panels
+    background: "#0f1624",
     boxShadow: "0 0 0 1px rgba(148,163,184,0.25)",
     color: "#e5e7eb",
   },
-  heading: {
-    margin: "0 0 1rem 0",
-    fontSize: "1.35rem",
-  },
-  subheading: {
-    margin: "0 0 0.5rem 0",
-    fontSize: "1rem",
-  },
-  section: {
-    marginBottom: "1.5rem",
-  },
+  heading: { margin: "0 0 1rem 0", fontSize: "1.35rem" },
+  subheading: { margin: "0 0 0.5rem 0", fontSize: "1rem" },
+  section: { marginBottom: "1.5rem" },
   form: {
     display: "flex",
     flexDirection: "column",
@@ -345,10 +312,7 @@ const styles = {
     fontSize: "0.9rem",
     gap: "0.25rem",
   },
-  labelInline: {
-    fontSize: "0.9rem",
-    marginRight: "0.5rem",
-  },
+  labelInline: { fontSize: "0.9rem", marginRight: "0.5rem" },
   currentRow: {
     display: "flex",
     alignItems: "center",
@@ -373,17 +337,12 @@ const styles = {
     background: "#050816",
     color: "#e5e7eb",
   },
-  // for inputs that have an eye button attached on the right
   inputPasswordLeft: {
     borderTopRightRadius: 0,
     borderBottomRightRadius: 0,
     marginBottom: 0,
   },
-  passwordFieldWrapper: {
-    display: "flex",
-    alignItems: "center",
-    width: "100%",
-  },
+  passwordFieldWrapper: { display: "flex", alignItems: "center", width: "100%" },
   eyeButton: {
     padding: "0.5rem 0.7rem",
     border: "1px solid rgba(148,163,184,0.6)",
@@ -402,7 +361,7 @@ const styles = {
     marginTop: "0.5rem",
     padding: "0.6rem 0.8rem",
     fontSize: "0.95rem",
-    background: "#22c55e", // green like play button vibe
+    background: "#22c55e",
     color: "#020617",
     border: "none",
     borderRadius: 999,
@@ -429,23 +388,12 @@ const styles = {
     borderRadius: 999,
     cursor: "pointer",
   },
-  helpText: {
-    fontSize: "0.9rem",
-    color: "rgba(148,163,184,0.9)",
-  },
+  helpText: { fontSize: "0.9rem", color: "rgba(148,163,184,0.9)" },
   divider: {
     border: "none",
     borderTop: "1px solid rgba(148,163,184,0.35)",
     margin: "1.25rem 0",
   },
-  error: {
-    marginTop: "0.75rem",
-    color: "#f97373",
-    fontSize: "0.9rem",
-  },
-  success: {
-    marginTop: "0.5rem",
-    color: "#4ade80",
-    fontSize: "0.9rem",
-  },
+  error: { marginTop: "0.75rem", color: "#f97373", fontSize: "0.9rem" },
+  success: { marginTop: "0.5rem", color: "#4ade80", fontSize: "0.9rem" },
 };

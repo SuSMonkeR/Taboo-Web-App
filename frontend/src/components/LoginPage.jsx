@@ -3,26 +3,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "./login.css";
 import ShootingStarsCanvas from "./ShootingStarsCanvas";
 import buildAmogusPalettes from "./amogusPalette";
-import { API_BASE } from "../api/library";
+import { loginWithPassword } from "../api/library";
 
 // ✅ Public-root paths (because files are in frontend/public/)
 const amongusBase = "/amogus.png";
 
 /**
  * ✅ IMPORTANT:
- * - Login/auth logic is untouched.
- * - Amogus are rendered in their own absolute layer (NOT inside .loginBG)
- * - Background layers still never block input.
- *
- * Behavior goal:
- * - "Window into space": sprites drift across screen and exit the other side.
- * - They NEVER slow to a stop (no friction).
- * - You can click-drag and fling; on release they continue drifting with the new velocity.
- *
- * CRITICAL NOTE:
- * - Click/drag was failing because .loginFG covers the whole screen at z-index:10
- *   and steals pointer events. CSS fix included in login.css rewrite:
- *   .loginFG { pointer-events:none } but .loginCard and its children stay pointer-events:auto.
+ * - Login/auth logic is untouched (still a password box -> token -> onLogin).
+ * - Uses centralized API client (library.js) so Render works.
+ * - Amogus render layer logic unchanged.
  */
 
 export default function LoginPage({ onLogin }) {
@@ -35,23 +25,12 @@ export default function LoginPage({ onLogin }) {
     setError("");
 
     try {
-      const response = await fetch(`${API_BASE}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-
-      const data = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        setError((data && data.detail) || "Invalid password");
-        return;
-      }
-
+      const data = await loginWithPassword(password);
       onLogin(data.token, data.role);
     } catch (err) {
       console.error(err);
-      setError("Server unavailable");
+      // backend sends "Invalid password." etc
+      setError(err?.message || "Server unavailable");
     }
   };
   // ===== END FUNCTIONALITY =====
@@ -188,7 +167,6 @@ export default function LoginPage({ onLogin }) {
     samples: [],
   });
 
-  // ✅ window listeners (works regardless of overlay layers)
   const moveListenerRef = useRef(null);
   const upListenerRef = useRef(null);
 
@@ -200,7 +178,6 @@ export default function LoginPage({ onLogin }) {
   };
 
   const getBounds = () => {
-    // We purposely use viewport bounds so drift always matches visible window.
     return { w: window.innerWidth, h: window.innerHeight };
   };
 
@@ -210,7 +187,6 @@ export default function LoginPage({ onLogin }) {
     const SIZE_MIN = 38;
     const SIZE_MAX = 96;
 
-    // ✅ "lazy river" speeds (px/sec)
     const SPEED_MIN = 70;
     const SPEED_MAX = 150;
 
@@ -272,7 +248,7 @@ export default function LoginPage({ onLogin }) {
     }
 
     const curved = rand(seed * 8.88) < 0.55;
-    const curveStrength = curved ? 8 + rand(seed * 9.99) * 18 : 0; // px/s^2
+    const curveStrength = curved ? 8 + rand(seed * 9.99) * 18 : 0;
     const curveFreq = curved ? 0.25 + rand(seed * 10.01) * 0.55 : 0;
     const curvePhase = rand(seed * 11.11) * Math.PI * 2;
     const curveDir = rand(seed * 12.12) < 0.5 ? 1 : -1;
@@ -360,12 +336,10 @@ export default function LoginPage({ onLogin }) {
             s.vy += ny * a * dt;
           }
 
-          // ✅ NO damping — constant drift
           s.x += s.vx * dt;
           s.y += s.vy * dt;
         }
 
-        // spin always
         s.rot += s.vr * dt;
 
         const el = elsRef.current.get(s.id);
@@ -394,9 +368,6 @@ export default function LoginPage({ onLogin }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseReady, paletteKeys.length]);
 
-  // ================================
-  // Pointer handlers (FIXED)
-  // ================================
   const recordSample = (x, y) => {
     const now = performance.now();
     const d = dragRef.current;
@@ -456,7 +427,6 @@ export default function LoginPage({ onLogin }) {
     const fx = Math.max(-MAX_FLING, Math.min(MAX_FLING, vx));
     const fy = Math.max(-MAX_FLING, Math.min(MAX_FLING, vy));
 
-    // If it was basically a click, keep original drift.
     if (speed >= 35) {
       s.vx = fx;
       s.vy = fy;
@@ -480,7 +450,6 @@ export default function LoginPage({ onLogin }) {
     const s = arr.find((x) => x.id === id);
     if (!s) return;
 
-    // bring clicked sprite "on top" by moving it to end of array
     const idx = arr.findIndex((x) => x.id === id);
     if (idx >= 0) {
       const [picked] = arr.splice(idx, 1);
@@ -489,7 +458,6 @@ export default function LoginPage({ onLogin }) {
 
     s.grabbed = true;
 
-    // ✅ FIX: Use viewport coordinates (because we track move on window)
     const px = e.clientX;
     const py = e.clientY;
 
@@ -499,7 +467,6 @@ export default function LoginPage({ onLogin }) {
     dragRef.current.samples = [];
     recordSample(px, py);
 
-    // pointer capture is fine but not required; keep it for consistency
     e.currentTarget.setPointerCapture?.(e.pointerId);
 
     const onMove = (ev) => {
@@ -518,8 +485,6 @@ export default function LoginPage({ onLogin }) {
       s2.x = mx - d.offsetX;
       s2.y = my - d.offsetY;
 
-      // keep velocity untouched during drag; we set it on release if fling
-      // (do NOT force vx/vy to 0 here; it can cause "dead" feel on click-release)
       recordSample(mx, my);
     };
 
@@ -528,7 +493,6 @@ export default function LoginPage({ onLogin }) {
     moveListenerRef.current = onMove;
     upListenerRef.current = onUp;
 
-    // passive:false so preventDefault works (touch)
     window.addEventListener("pointermove", onMove, { passive: false });
     window.addEventListener("pointerup", onUp, { passive: true });
     window.addEventListener("pointercancel", onUp, { passive: true });
@@ -538,7 +502,6 @@ export default function LoginPage({ onLogin }) {
     return () => removeWindowDragListeners();
   }, []);
 
-  // Render list (React only creates nodes; rAF updates transforms)
   const [renderList, setRenderList] = useState([]);
   useEffect(() => {
     setRenderList([...spritesRef.current]);
@@ -552,7 +515,6 @@ export default function LoginPage({ onLogin }) {
 
   return (
     <div className="loginPage">
-      {/* BACKGROUND (never steals clicks) */}
       <div className="loginBG" aria-hidden="true">
         <div className="nebula n1" />
         <div className="nebula n2" />
@@ -566,7 +528,6 @@ export default function LoginPage({ onLogin }) {
         <div className="grain" />
       </div>
 
-      {/* AMOGUS LAYER */}
       <div className="amogusLayer" ref={amogusLayerRef}>
         {renderList.map((s) => {
           const src = getRecoloredSrc(s.paletteKey);
@@ -590,7 +551,6 @@ export default function LoginPage({ onLogin }) {
         })}
       </div>
 
-      {/* FOREGROUND */}
       <div className="loginFG">
         <div className="loginCard">
           <div className="cardHalo" />

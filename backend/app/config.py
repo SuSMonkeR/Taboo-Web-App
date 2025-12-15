@@ -55,7 +55,10 @@ class Settings(BaseSettings):
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
     SMTP_USE_TLS: bool = True
-
+    MAILGUN_API_KEY: str = ""
+    MAILGUN_DOMAIN: str = ""
+    MAILGUN_BASE_URL: str = "https://api.mailgun.net"
+    MAILGUN_FROM: str = ""
     # === Google Sheets API ===
     GOOGLE_SHEETS_API_KEY: Optional[str] = None
 

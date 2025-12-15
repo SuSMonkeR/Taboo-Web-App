@@ -3,11 +3,7 @@
 // ✅ Backend base URL:
 // - Local dev falls back to localhost
 // - Render/prod should set VITE_BACKEND_URL in the frontend service env vars
-export const API_BASE =
-  (typeof import.meta !== "undefined" &&
-    import.meta.env &&
-    import.meta.env.VITE_BACKEND_URL) ||
-  "http://127.0.0.1:8000";
+export const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
 
 // Simple token getter; tweak if you ever change storage key
 function getToken() {
@@ -24,15 +20,15 @@ export function authHeaders() {
 
 /**
  * Common JSON response handler.
- * Throws an Error with any .detail from the backend if status is not ok.
+ * Throws an Error with any .detail or .message from the backend if status is not ok.
  */
 export async function handleJsonResponse(resp) {
   if (!resp.ok) {
     let msg = "Request failed";
     try {
       const data = await resp.json();
-      if (data && data.detail) msg = data.detail;
-      else if (data && data.message) msg = data.message;
+      if (data?.detail) msg = data.detail;
+      else if (data?.message) msg = data.message;
     } catch {
       try {
         msg = await resp.text();
@@ -69,7 +65,7 @@ export async function loginWithPassword(password) {
 
   const data = await handleJsonResponse(resp);
 
-  if (data && data.token) {
+  if (data?.token) {
     window.localStorage.setItem("taboo_token", data.token);
   }
 

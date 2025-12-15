@@ -1,6 +1,13 @@
 // frontend/src/api/library.js
 
-export const API_BASE = "http://127.0.0.1:8000";
+// ✅ Backend base URL:
+// - Local dev falls back to localhost
+// - Render/prod should set VITE_BACKEND_URL in the frontend service env vars
+export const API_BASE =
+  (typeof import.meta !== "undefined" &&
+    import.meta.env &&
+    import.meta.env.VITE_BACKEND_URL) ||
+  "http://127.0.0.1:8000";
 
 // Simple token getter; tweak if you ever change storage key
 function getToken() {
@@ -24,9 +31,8 @@ export async function handleJsonResponse(resp) {
     let msg = "Request failed";
     try {
       const data = await resp.json();
-      if (data && data.detail) {
-        msg = data.detail;
-      }
+      if (data && data.detail) msg = data.detail;
+      else if (data && data.message) msg = data.message;
     } catch {
       try {
         msg = await resp.text();
@@ -37,7 +43,19 @@ export async function handleJsonResponse(resp) {
     throw new Error(msg || "Request failed");
   }
 
-  return resp.json();
+  // Handle 204 No Content safely
+  if (resp.status === 204) return null;
+
+  // Some endpoints might return empty body even on 200
+  const text = await resp.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    // If backend ever returns plain text on success
+    return text;
+  }
 }
 
 // -------- AUTH --------
@@ -91,12 +109,8 @@ export async function importDeckFromUrl(
       : 4,
   };
 
-  if (name && name.trim()) {
-    body.name = name.trim();
-  }
-  if (category && category.trim()) {
-    body.category = category.trim();
-  }
+  if (name && name.trim()) body.name = name.trim();
+  if (category && category.trim()) body.category = category.trim();
 
   const resp = await fetch(`${API_BASE}/library/decks/from-url`, {
     method: "POST",

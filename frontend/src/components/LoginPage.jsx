@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "./login.css";
 import ShootingStarsCanvas from "./ShootingStarsCanvas";
 import buildAmogusPalettes from "./amogusPalette";
+import { API_BASE } from "../api/library";
 
 // ✅ Public-root paths (because files are in frontend/public/)
 const amongusBase = "/amogus.png";
@@ -34,7 +35,7 @@ export default function LoginPage({ onLogin }) {
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/auth/login", {
+      const response = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),

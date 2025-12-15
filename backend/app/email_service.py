@@ -1,46 +1,31 @@
 # backend/app/email_service.py
+
 import smtplib
 from email.message import EmailMessage
 
 from .config import settings
 
 
-def _build_reset_link(token: str) -> str:
-    """
-    Build a reset link for the admin password.
-
-    For now we hardcode the frontend URL path; you can adjust this later
-    or move the base URL into settings if you want.
-    """
-    # You can change this if your frontend runs elsewhere:
-    base_url = "http://localhost:5173"
-    return f"{base_url}/admin-reset?token={token}"
-
-
 def send_admin_reset_email(to_email: str, token: str) -> None:
     """
-    Send an admin password reset email to the given address.
+    Send an admin password reset email containing ONLY the reset token.
 
-    If SMTP settings are not configured, this will simply log the email
-    contents to the console (dev mode), so the rest of the flow can still
-    be exercised without a real mail server.
+    The frontend is responsible for accepting the token and completing
+    the reset flow. No URLs are generated or sent.
     """
-    reset_link = _build_reset_link(token)
 
-    subject = "Taboo Admin Password Reset"
+    subject = "Taboo Admin Password Reset Token"
     body = (
         "A request was made to reset the admin password for the Taboo web app.\n\n"
-        "If you did not request this, you can ignore this email.\n\n"
-        "You have two ways to complete the reset:\n\n"
-        "1) Open this link to launch the app:\n"
-        f"{reset_link}\n\n"
-        "2) Or copy this reset token and paste it into the 'Admin password reset'\n"
-        "   section of the Taboo app (in the Password Manager tab):\n\n"
+        "If you did not request this, you can safely ignore this email.\n\n"
+        "Use the following reset token inside the Taboo app:\n\n"
         f"{token}\n\n"
-        "After pasting the token, enter the new admin password and submit.\n"
+        "Open the Taboo app, go to the Password Manager tab,\n"
+        "paste the token, enter a new admin password, and submit.\n\n"
+        "This token will expire according to server rules.\n"
     )
 
-    # If SMTP is not configured, just log to console and return.
+    # If SMTP is not configured, log to console (dev mode)
     if not settings.SMTP_HOST:
         print("=== Admin Reset Email (DEV MODE) ===")
         print(f"To: {to_email}")
@@ -66,7 +51,7 @@ def send_admin_reset_email(to_email: str, token: str) -> None:
 
             server.send_message(msg)
     except Exception as exc:
-        # Fail silently but log so you can see issues in dev logs
+        # Fail silently but log for visibility
         print("Failed to send admin reset email:", exc)
         print("Email that failed to send was:")
         print(msg)

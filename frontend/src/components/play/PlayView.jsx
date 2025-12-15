@@ -1,5 +1,6 @@
+// frontend/src/views/play/PlayView.jsx
 import { useEffect, useMemo, useState } from "react";
-import { fetchDeckState } from "../../api/library"; // ../../ because we're in /play/
+import { fetchDeckState } from "../../api/library"; // ../../ because we're in /views/play/
 
 function shuffleArray(array) {
   const arr = array.slice();
@@ -67,11 +68,13 @@ function toTinyText(str) {
     z: "ᴢ",
   };
 
-  return Array.from(str).map((ch) => {
-    const lower = ch.toLowerCase();
-    if (map[lower]) return map[lower];
-    return ch; // keep spaces, punctuation, etc.
-  }).join("");
+  return Array.from(str)
+    .map((ch) => {
+      const lower = ch.toLowerCase();
+      if (map[lower]) return map[lower];
+      return ch; // keep spaces, punctuation, etc.
+    })
+    .join("");
 }
 
 export default function PlayView() {
@@ -85,13 +88,12 @@ export default function PlayView() {
 
   // Game state: pool of cards built from selected decks
   const [isPlaying, setIsPlaying] = useState(false);
-  const [basePool, setBasePool] = useState([]);      // unshuffled pool
+  const [basePool, setBasePool] = useState([]); // unshuffled pool
   const [originalRun, setOriginalRun] = useState([]); // last shuffled run
-  const [remaining, setRemaining] = useState([]);     // what’s left to draw
+  const [remaining, setRemaining] = useState([]); // what’s left to draw
   const [copied, setCopied] = useState(false);
 
   // ---------- Load deck state from backend ----------
-
   const loadDeckState = async () => {
     try {
       setLoading(true);
@@ -121,7 +123,6 @@ export default function PlayView() {
   }, []);
 
   // ---------- Helpers for categories / decks ----------
-
   const allCategories = useMemo(() => {
     const explicit = categories || [];
     const hasUncat = explicit.includes("Uncategorized");
@@ -180,7 +181,6 @@ export default function PlayView() {
   };
 
   // ---------- Build card pool from selected decks ----------
-
   const buildCardPoolFromSelection = () => {
     const pool = [];
     decks.forEach((deck) => {
@@ -198,7 +198,6 @@ export default function PlayView() {
   };
 
   // ---------- Game controls ----------
-
   const beginPlay = () => {
     if (selectedDeckIds.length === 0) {
       window.alert("Select at least one deck first.");
@@ -216,8 +215,8 @@ export default function PlayView() {
 
     const shuffled = shuffleArray(pool);
     setIsPlaying(true);
-    setBasePool(pool);         // store unshuffled
-    setOriginalRun(shuffled);  // store one shuffled run (optional)
+    setBasePool(pool); // store unshuffled
+    setOriginalRun(shuffled); // store one shuffled run (optional)
     setRemaining(shuffled);
   };
 
@@ -228,7 +227,8 @@ export default function PlayView() {
 
   const reloadPlay = () => {
     // Reshuffle the base pool instead of reusing originalRun
-    const pool = basePool && basePool.length ? basePool : buildCardPoolFromSelection();
+    const pool =
+      basePool && basePool.length ? basePool : buildCardPoolFromSelection();
     if (!pool || !pool.length) return;
 
     const shuffled = shuffleArray(pool);
@@ -252,8 +252,7 @@ export default function PlayView() {
     });
   };
 
-  const currentCard =
-    remaining && remaining.length > 0 ? remaining[0] : null;
+  const currentCard = remaining && remaining.length > 0 ? remaining[0] : null;
 
   // For preview text if we don't have a real card yet
   const previewWord = currentCard
@@ -263,7 +262,6 @@ export default function PlayView() {
     : "Word will appear here once play starts";
 
   // ---------- Copy / paste box ----------
-
   const buildCopyText = () => {
     if (!currentCard) {
       return `TABOO CARD CONTENT WILL GO HERE\n(Current card: ${previewWord})`;
@@ -330,7 +328,8 @@ export default function PlayView() {
                 padding: 12,
                 background: "#020617",
                 color: "#e5e7eb",
-                fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+                fontFamily:
+                  "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
                 fontSize: 12,
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-word",
@@ -374,32 +373,19 @@ export default function PlayView() {
 
           {/* Play / Stop / Reload buttons */}
           <div className="play-controls-row">
-            <button
-              className="pill pill-green big-pill"
-              onClick={beginPlay}
-            >
+            <button className="pill pill-green big-pill" onClick={beginPlay}>
               P (Play)
             </button>
-            <button
-              className="pill pill-red big-pill"
-              onClick={stopPlay}
-            >
+            <button className="pill pill-red big-pill" onClick={stopPlay}>
               S (Stop)
             </button>
-            <button
-              className="pill pill-yellow big-pill"
-              onClick={reloadPlay}
-            >
+            <button className="pill pill-yellow big-pill" onClick={reloadPlay}>
               R (Reload)
             </button>
           </div>
 
-          {loading && (
-            <div className="play-status-row">Loading deck list…</div>
-          )}
-          {error && (
-            <div className="play-status-row play-error">{error}</div>
-          )}
+          {loading && <div className="play-status-row">Loading deck list…</div>}
+          {error && <div className="play-status-row play-error">{error}</div>}
         </div>
 
         {/* RIGHT: deck selection column */}
@@ -444,9 +430,7 @@ export default function PlayView() {
           <div className="deck-list">
             {allCategories.map((cat) => {
               const decksForCat = decksByCategory(cat);
-              if (decksForCat.length === 0) {
-                return null;
-              }
+              if (decksForCat.length === 0) return null;
 
               const allInCatSelected =
                 decksForCat.length > 0 &&

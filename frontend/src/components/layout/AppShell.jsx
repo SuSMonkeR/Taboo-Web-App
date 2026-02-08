@@ -4,6 +4,7 @@ export default function AppShell({
   activeTab,
   onTabChange,
   role,
+  displayName,
   onLogout,
   children,
 }) {
@@ -13,6 +14,7 @@ export default function AppShell({
         activeTab={activeTab}
         onTabChange={onTabChange}
         role={role}
+        displayName={displayName}
         onLogout={onLogout}
       />
 

@@ -26,7 +26,7 @@ export default function LoginPage({ onLogin }) {
 
     try {
       const data = await loginWithPassword(password);
-      onLogin(data.token, data.role);
+      onLogin(data.token, data.role, data.display_name);
     } catch (err) {
       console.error(err);
       // backend sends "Invalid password." etc

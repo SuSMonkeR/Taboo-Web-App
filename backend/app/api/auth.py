@@ -1,14 +1,17 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Depends, Header, status
+from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from jose import JWTError, jwt
 
 from ..config import settings
 from ..auth_repository import (
     ensure_default_roles,
-    get_role_by_password,
+    get_user_by_password,
+    owner_exists,
+    create_owner,
     update_staff_password,
     update_admin_password,
     create_admin_reset_token,
@@ -35,7 +38,17 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     token: str
-    role: str  # "staff" | "admin" | "dev"
+    role: str  # "dev" | "owner" | "admin" | "operator"
+    display_name: str
+
+
+class CreateOwnerRequest(BaseModel):
+    display_name: str
+    password: str
+
+
+class OwnerExistsResponse(BaseModel):
+    exists: bool
 
 
 class ChangeStaffPasswordRequest(BaseModel):
@@ -92,35 +105,43 @@ def decode_access_token(token: str) -> Optional[str]:
 # ---------- Dependencies ----------
 
 
-async def get_current_role(authorization: str = Header(None)) -> str:
+security = HTTPBearer()
+
+
+async def get_current_role(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     """
     Extract and validate the role from the Authorization header (Bearer <token>).
     """
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing or invalid Authorization header.",
-        )
-
-    token = authorization.split(" ", 1)[1].strip()
+    token = credentials.credentials
     role = decode_access_token(token)
     if not role:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token.",
         )
-
     return role
 
 
 def require_admin_or_dev(role: str = Depends(get_current_role)) -> str:
     """
-    Dependency to require that the current user is admin or dev.
+    Dependency to require that the current user is admin, owner, or dev.
     """
-    if role not in ("admin", "dev"):
+    if role not in ("admin", "owner", "dev"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required.",
+        )
+    return role
+
+
+def require_dev_only(role: str = Depends(get_current_role)) -> str:
+    """
+    Dependency to require dev-only access.
+    """
+    if role != "dev":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Dev access required.",
         )
     return role
 
@@ -131,22 +152,66 @@ def require_admin_or_dev(role: str = Depends(get_current_role)) -> str:
 @router.post("/login", response_model=LoginResponse)
 async def login(body: LoginRequest) -> LoginResponse:
     """
-    Attempt to log in with a single password.
+    Attempt to log in with a password.
 
     The password is checked against:
     - DEV_PASSWORD from env (role = dev)
-    - admin hash in Mongo
-    - staff hash in Mongo
+    - Individual accounts in passwords collection (owner/admin/operator)
+    - Legacy roles collection for backward compatibility (admin/staff → admin/operator)
     """
-    # Make sure default roles are present (idempotent)
+    # Keep default roles seeded for backward compatibility
     ensure_default_roles()
 
-    role = get_role_by_password(body.password)
-    if role is None:
+    user = get_user_by_password(body.password)
+    if user is None:
         raise HTTPException(status_code=401, detail="Invalid password.")
 
-    token = create_access_token(role=role)
-    return LoginResponse(token=token, role=role)
+    token = create_access_token(role=user["role"])
+    return LoginResponse(
+        token=token, 
+        role=user["role"],
+        display_name=user["display_name"]
+    )
+
+
+@router.get("/owner-exists", response_model=OwnerExistsResponse)
+async def check_owner_exists() -> OwnerExistsResponse:
+    """
+    Check if an Owner account exists.
+    
+    Used by the frontend to determine whether to show Owner setup UI.
+    This endpoint does NOT require authentication (anyone can check).
+    """
+    return OwnerExistsResponse(exists=owner_exists())
+
+
+@router.post("/create-owner", response_model=GenericResponse)
+async def create_owner_account(
+    body: CreateOwnerRequest,
+    role: str = Depends(require_dev_only),
+) -> GenericResponse:
+    """
+    Create the initial Owner account.
+    
+    Only callable by Dev, and only when no Owner exists yet.
+    """
+    if owner_exists():
+        raise HTTPException(
+            status_code=400,
+            detail="Owner already exists. Use transfer functionality instead."
+        )
+    
+    if not body.display_name or not body.display_name.strip():
+        raise HTTPException(status_code=400, detail="Display name is required.")
+    
+    if not body.password or len(body.password) < 3:
+        raise HTTPException(status_code=400, detail="Password must be at least 3 characters.")
+    
+    try:
+        create_owner(body.display_name.strip(), body.password)
+        return GenericResponse(message=f"Owner account '{body.display_name}' created successfully.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get(
@@ -159,8 +224,10 @@ async def get_staff_password(
     """
     Return the current staff password in plaintext.
 
-    Restricted to admin/dev only. This is purely for convenience in this
+    Restricted to admin/owner/dev only. This is purely for convenience in this
     small internal tool.
+    
+    DEPRECATED: This is for backward compatibility with old role system.
     """
     pw = get_staff_password_plain()
     if pw is None:
@@ -182,9 +249,10 @@ async def change_staff_password(
     """
     Change the shared staff password.
 
-    Only users with role 'admin' or 'dev' may call this.
+    Only users with role 'admin', 'owner', or 'dev' may call this.
+    
+    DEPRECATED: This is for backward compatibility with old role system.
     """
-    # Basic sanity check; no complexity rules enforced by design
     if not body.new_password:
         raise HTTPException(status_code=400, detail="New password cannot be empty.")
 
@@ -203,8 +271,7 @@ async def request_admin_reset(
     Request an admin password reset.
 
     This generates a one-time token and sends an email to ADMIN_RESET_EMAIL.
-    Only users with role 'admin' or 'dev' may call this, but only the email
-    owner (Kendra) can complete the reset.
+    Only users with role 'admin', 'owner', or 'dev' may call this.
     """
     if not settings.ADMIN_RESET_EMAIL:
         raise HTTPException(
@@ -213,7 +280,6 @@ async def request_admin_reset(
         )
 
     token = create_admin_reset_token()
-    # Send email to Kendra with the token (and optionally a link)
     send_admin_reset_email(settings.ADMIN_RESET_EMAIL, token)
 
     return RequestAdminResetResponse(
@@ -237,7 +303,6 @@ async def reset_admin_password(
     if not body.token or not body.new_password:
         raise HTTPException(status_code=400, detail="Token and new password are required.")
 
-    # Validate and consume the token
     ok = use_admin_reset_token(body.token)
     if not ok:
         raise HTTPException(

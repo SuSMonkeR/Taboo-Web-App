@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Dict
 import secrets
 import hashlib
 import hmac
@@ -7,7 +7,8 @@ import hmac
 from .config import settings
 from .mongo_client import get_db
 
-ROLES_COLLECTION = "roles"
+ROLES_COLLECTION = "roles"  # OLD - being deprecated
+PASSWORDS_COLLECTION = "passwords"  # NEW - individual accounts with display names
 ADMIN_RESET_TOKENS_COLLECTION = "admin_reset_tokens"
 
 
@@ -20,8 +21,7 @@ def _hash_password(password: str) -> str:
 
     This is NOT bank-grade crypto, but is perfectly adequate for a small,
     internal tool where we just don't want to store plaintext for auth
-    comparison. (We *also* store plaintext for staff/admin so it can be
-    shown in the UI.)
+    comparison.
     """
     if password is None:
         password = ""
@@ -42,16 +42,113 @@ def _verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
-# ---------- Role seeding / lookup ----------
+# ---------- NEW: User lookup with display names ----------
+
+
+def get_user_by_password(password: str) -> Optional[Dict[str, str]]:
+    """
+    Given a plaintext password, return user info:
+    {
+        "display_name": str,
+        "role": "dev" | "owner" | "admin" | "operator",
+        "password_id": str | None
+    }
+    
+    Returns None if no match.
+    
+    Checks in order:
+    1. Dev password (env-only, never in database)
+    2. New passwords collection (individual accounts with display names)
+    3. Old roles collection (for backward compatibility during transition)
+    """
+    # Check dev first (env-only, not stored in DB)
+    if settings.DEV_PASSWORD and password == settings.DEV_PASSWORD:
+        return {
+            "display_name": "Dev",
+            "role": "dev",
+            "password_id": None
+        }
+
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+
+    # Check new passwords collection (individual accounts)
+    for doc in passwords.find({"is_active": True}):
+        password_hash = doc.get("password_hash")
+        if isinstance(password_hash, str) and _verify_password(password, password_hash):
+            return {
+                "display_name": doc.get("display_name", "Unknown"),
+                "role": doc.get("role", "operator"),
+                "password_id": str(doc["_id"])
+            }
+
+    # Fallback: check old roles collection for backward compatibility
+    # This allows existing staff/admin passwords to keep working during transition
+    roles = db[ROLES_COLLECTION]
+    for role_name in ("admin", "staff"):
+        doc = roles.find_one({"role": role_name})
+        if not doc:
+            continue
+        password_hash = doc.get("password_hash")
+        if isinstance(password_hash, str) and _verify_password(password, password_hash):
+            # Map old roles to new roles
+            mapped_role = "admin" if role_name == "admin" else "operator"
+            return {
+                "display_name": f"Legacy {role_name.title()}",
+                "role": mapped_role,
+                "password_id": None  # Old system doesn't have password IDs
+            }
+
+    return None
+
+
+def owner_exists() -> bool:
+    """
+    Check if an Owner account exists in the passwords collection.
+    Used to determine if we should show Owner setup UI.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    owner_doc = passwords.find_one({"role": "owner", "is_active": True})
+    return owner_doc is not None
+
+
+def create_owner(display_name: str, password: str) -> str:
+    """
+    Create the initial Owner account.
+    This should only be called when no Owner exists.
+    
+    Returns the password_id of the created owner.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    # Safety check: don't create if owner already exists
+    if owner_exists():
+        raise ValueError("Owner already exists")
+    
+    now = datetime.utcnow()
+    doc = {
+        "display_name": display_name,
+        "password_hash": _hash_password(password),
+        "role": "owner",
+        "is_active": True,
+        "created_at": now,
+        "created_by": "Dev"
+    }
+    
+    result = passwords.insert_one(doc)
+    return str(result.inserted_id)
+
+
+# ---------- OLD FUNCTIONS (deprecated, kept for backward compatibility) ----------
 
 
 def ensure_default_roles() -> None:
     """
-    Ensure that the MongoDB 'roles' collection has at least staff/admin entries.
-
-    Uses STAFF_DEFAULT_PASSWORD and ADMIN_DEFAULT_PASSWORD from settings ONLY
-    if the roles do not already exist. Dev password is handled via env and is
-    not stored in Mongo.
+    DEPRECATED: This function is being phased out in favor of UI-driven account creation.
+    
+    Kept for backward compatibility during transition.
     """
     db = get_db()
     roles = db[ROLES_COLLECTION]
@@ -84,45 +181,20 @@ def ensure_default_roles() -> None:
             }
         )
 
-    # Dev is intentionally NOT stored here; it is checked directly against
-    # settings.DEV_PASSWORD at login and cannot be changed via UI.
-
 
 def get_role_by_password(password: str) -> Optional[str]:
     """
-    Given a plaintext password, return the matching role:
-    "dev", "admin", "staff", or None if no match.
-
-    Dev is matched directly against settings.DEV_PASSWORD (env-only).
-    Admin/staff are matched against SHA-256 hashes stored in Mongo.
+    DEPRECATED: Use get_user_by_password() instead.
+    
+    Kept for backward compatibility.
     """
-    # Check dev first (env-only, not stored in DB)
-    if settings.DEV_PASSWORD and password == settings.DEV_PASSWORD:
-        return "dev"
-
-    db = get_db()
-    roles = db[ROLES_COLLECTION]
-
-    # Check admin, then staff
-    for role_name in ("admin", "staff"):
-        doc = roles.find_one({"role": role_name})
-        if not doc:
-            continue
-        password_hash = doc.get("password_hash")
-        if isinstance(password_hash, str) and _verify_password(password, password_hash):
-            return role_name
-
-    return None
+    user = get_user_by_password(password)
+    return user["role"] if user else None
 
 
 def _set_role_password(role: str, new_password: str) -> None:
     """
-    Internal helper to set the password for a given role in Mongo.
-    Creates the role document if it does not exist.
-
-    We store both:
-    - password_hash: for comparison on login
-    - password_plain: so you can view it in the UI
+    DEPRECATED: Old role-based password system.
     """
     db = get_db()
     roles = db[ROLES_COLLECTION]
@@ -148,38 +220,34 @@ def _set_role_password(role: str, new_password: str) -> None:
 
 
 def update_staff_password(new_password: str) -> None:
-    """Update the shared staff password in Mongo."""
+    """DEPRECATED: Update the shared staff password in Mongo."""
     _set_role_password("staff", new_password)
 
 
 def update_admin_password(new_password: str) -> None:
-    """Update the shared admin password in Mongo."""
+    """DEPRECATED: Update the shared admin password in Mongo."""
     _set_role_password("admin", new_password)
 
 
 def get_staff_password_plain() -> Optional[str]:
     """
-    Return the current staff password in plaintext.
-
-    This is used ONLY for the UI "Show staff password" feature and is
-    restricted to admin/dev via the API layer.
+    DEPRECATED: Return the current staff password in plaintext.
     """
     db = get_db()
     roles = db[ROLES_COLLECTION]
     doc = roles.find_one({"role": "staff"})
     if not doc:
-        # no staff doc in DB – fall back to default if set
         return settings.STAFF_DEFAULT_PASSWORD or None
 
     pw = doc.get("password_plain")
     if isinstance(pw, str) and pw:
         return pw
 
-    # Old docs that predate password_plain: fall back to default
     if settings.STAFF_DEFAULT_PASSWORD:
         return settings.STAFF_DEFAULT_PASSWORD
 
     return None
+
 
 # ---------- Admin reset tokens ----------
 

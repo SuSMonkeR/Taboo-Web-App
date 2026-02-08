@@ -1,5 +1,5 @@
-export default function Sidebar({ activeTab, onTabChange, role, onLogout }) {
-  const isAdminLike = role === "admin" || role === "dev";
+export default function Sidebar({ activeTab, onTabChange, role, displayName, onLogout }) {
+  const isAdminLike = role === "admin" || role === "dev" || role === "owner";
 
   return (
     <aside className="sidebar">
@@ -48,7 +48,7 @@ export default function Sidebar({ activeTab, onTabChange, role, onLogout }) {
         )}
       </nav>
 
-      {/* Simple footer: role label + logout */}
+      {/* Simple footer: display name, role label + logout */}
       <div
         style={{
           marginTop: "auto",
@@ -56,8 +56,11 @@ export default function Sidebar({ activeTab, onTabChange, role, onLogout }) {
           fontSize: "0.8rem",
         }}
       >
-        <div style={{ opacity: 0.7, marginBottom: "0.5rem" }}>
-          Role: <b>{role}</b>
+        <div style={{ opacity: 0.9, marginBottom: "0.25rem", fontWeight: 500 }}>
+          {displayName || "User"}
+        </div>
+        <div style={{ opacity: 0.6, marginBottom: "0.5rem", fontSize: "0.75rem" }}>
+          {role}
         </div>
         <button
           className="sidebar-btn"

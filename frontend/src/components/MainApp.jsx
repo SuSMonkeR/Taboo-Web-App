@@ -4,13 +4,13 @@ import PlayView from "./play/PlayView";
 import ManageView from "./manage/ManageView";
 import PasswordManagerTab from "./PasswordManagerTab";
 
-export default function MainApp({ role, token, onLogout }) {
+export default function MainApp({ role, token, displayName, onLogout }) {
   const [activeTab, setActiveTab] = useState("play"); // "play" | "manage" | "password-manager"
 
-  const isAdminLike = role === "admin" || role === "dev";
+  const isAdminLike = role === "admin" || role === "dev" || role === "owner";
 
   const handleTabChange = (tab) => {
-    // Staff are not allowed to use non-play tabs
+    // Operators are not allowed to use non-play tabs
     if (!isAdminLike && tab !== "play") {
       setActiveTab("play");
       return;
@@ -33,6 +33,7 @@ export default function MainApp({ role, token, onLogout }) {
       activeTab={activeTab}
       onTabChange={handleTabChange}
       role={role}
+      displayName={displayName}
       onLogout={onLogout}
     >
       {content}

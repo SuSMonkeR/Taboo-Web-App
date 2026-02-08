@@ -19,7 +19,7 @@ export default function PasswordManagerTab({ token, role }) {
   const [error, setError] = useState("");
   const [loadingStaffPassword, setLoadingStaffPassword] = useState(false);
 
-  const isAdminLike = role === "admin" || role === "dev";
+  const isAdminLike = role === "admin" || role === "dev" || role === "owner";
 
   // If you pass token as a prop, prefer it; otherwise fall back to localStorage behavior
   const mergedAuthHeaders = useMemo(() => {

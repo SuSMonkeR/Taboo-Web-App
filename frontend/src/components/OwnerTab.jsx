@@ -381,106 +381,96 @@ export default function OwnerTab({ role, token }) {
         <hr style={styles.divider} />
 
         {/* Relinquish Ownership */}
-        {role === "owner" && (
-          <>
-            <section style={styles.section}>
-              <h3 style={styles.subheading}>Relinquish Ownership</h3>
-              <p style={styles.helpText}>
-                Give up ownership voluntarily. You will become an admin.
-              </p>
+        <section style={styles.section}>
+          <h3 style={styles.subheading}>Relinquish Ownership</h3>
+          <p style={styles.helpText}>
+            Give up ownership voluntarily. You will become an admin.
+          </p>
 
-              <button
-                type="button"
-                style={styles.dangerButton}
-                onClick={handleRelinquishOwner}
-              >
-                Relinquish Ownership
-              </button>
-            </section>
+          <button
+            type="button"
+            style={styles.dangerButton}
+            onClick={handleRelinquishOwner}
+          >
+            Relinquish Ownership
+          </button>
+        </section>
 
-            <hr style={styles.divider} />
-          </>
-        )}
+        <hr style={styles.divider} />
 
         {/* Update Profile */}
-        {role === "owner" && (
-          <>
-            <section style={styles.section}>
-              <h3 style={styles.subheading}>Update Profile</h3>
-              <p style={styles.helpText}>
-                Change your display name or email address.
-              </p>
+        <section style={styles.section}>
+          <h3 style={styles.subheading}>Update Profile</h3>
+          <p style={styles.helpText}>
+            Change your display name or email address.
+          </p>
 
-              <form onSubmit={handleUpdateProfile} style={styles.form}>
-                <label style={styles.label}>
-                  Display Name
-                  <input
-                    type="text"
-                    value={editDisplayName}
-                    onChange={(e) => setEditDisplayName(e.target.value)}
-                    style={styles.input}
-                    placeholder="Display name"
-                  />
-                </label>
+          <form onSubmit={handleUpdateProfile} style={styles.form}>
+            <label style={styles.label}>
+              Display Name
+              <input
+                type="text"
+                value={editDisplayName}
+                onChange={(e) => setEditDisplayName(e.target.value)}
+                style={styles.input}
+                placeholder="Display name"
+              />
+            </label>
 
-                <label style={styles.label}>
-                  Email (for password recovery)
-                  <input
-                    type="email"
-                    value={editEmail}
-                    onChange={(e) => setEditEmail(e.target.value)}
-                    style={styles.input}
-                    placeholder="your@email.com"
-                  />
-                </label>
+            <label style={styles.label}>
+              Email (for password recovery)
+              <input
+                type="email"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                style={styles.input}
+                placeholder="your@email.com"
+              />
+            </label>
 
-                <button type="submit" style={styles.primaryButton}>
-                  Update Profile
-                </button>
-              </form>
-            </section>
+            <button type="submit" style={styles.primaryButton}>
+              Update Profile
+            </button>
+          </form>
+        </section>
 
-            <hr style={styles.divider} />
-          </>
-        )}
+        <hr style={styles.divider} />
 
         {/* Update Password */}
-        {role === "owner" && (
-          <section style={styles.section}>
-            <h3 style={styles.subheading}>Change Password</h3>
-            <p style={styles.helpText}>
-              Update your owner password.
-            </p>
+        <section style={styles.section}>
+          <h3 style={styles.subheading}>Change Password</h3>
+          <p style={styles.helpText}>
+            Update your owner password.
+          </p>
 
-            <form onSubmit={handleUpdatePassword} style={styles.form}>
-              <label style={styles.label}>
-                New Password
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  style={styles.input}
-                  placeholder="Enter new password"
-                />
-              </label>
+          <form onSubmit={handleUpdatePassword} style={styles.form}>
+            <label style={styles.label}>
+              New Password
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                style={styles.input}
+                placeholder="Enter new password"
+              />
+            </label>
 
-              <label style={styles.label}>
-                Confirm Password
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  style={styles.input}
-                  placeholder="Confirm password"
-                />
-              </label>
+            <label style={styles.label}>
+              Confirm Password
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                style={styles.input}
+                placeholder="Confirm password"
+              />
+            </label>
 
-              <button type="submit" style={styles.primaryButton}>
-                Change Password
-              </button>
-            </form>
-          </section>
-        )}
+            <button type="submit" style={styles.primaryButton}>
+              Change Password
+            </button>
+          </form>
+        </section>
 
         {error && <p style={styles.error}>{error}</p>}
         {successMessage && <p style={styles.success}>{successMessage}</p>}

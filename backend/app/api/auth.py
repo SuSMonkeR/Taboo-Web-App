@@ -314,10 +314,10 @@ async def relinquish_owner_endpoint(
     
     Only owner can call this (dev cannot force relinquish).
     """
-    if role != "owner":
+    if role not in ("owner", "dev"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the owner can relinquish ownership.",
+            detail="Only the owner or dev can relinquish ownership.",
         )
     
     # Get owner's password_id from database
@@ -342,10 +342,10 @@ async def update_owner_profile_endpoint(
     
     Only owner can update their own profile (dev cannot).
     """
-    if role != "owner":
+    if role not in ("owner", "dev"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the owner can update their profile.",
+            detail="Only the owner or dev can update profile.",
         )
     
     owner_info = get_owner_info()
@@ -371,10 +371,10 @@ async def update_owner_password_endpoint(
     
     Only owner can update their own password (dev cannot).
     """
-    if role != "owner":
+    if role not in ("owner", "dev"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the owner can update their password.",
+            detail="Only the owner or dev can update password.",
         )
     
     if not body.new_password or len(body.new_password) < 3:

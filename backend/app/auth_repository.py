@@ -264,6 +264,255 @@ def update_owner_password(owner_password_id: str, new_password: str) -> None:
         {"$set": {"password_hash": password_hash}}
     )
 
+# ---------- Account Management Functions ----------
+
+
+def list_all_accounts() -> list[Dict]:
+    """
+    Get all accounts from the passwords collection.
+    Returns list of account info (excludes password hashes for security).
+    
+    Used by Account Management page to show all users.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    accounts = []
+    for doc in passwords.find().sort("created_at", -1):  # Newest first
+        accounts.append({
+            "account_id": str(doc["_id"]),
+            "display_name": doc.get("display_name", "Unknown"),
+            "email": doc.get("email"),
+            "role": doc.get("role", "operator"),
+            "is_active": doc.get("is_active", True),
+            "created_at": doc.get("created_at"),
+            "created_by": doc.get("created_by"),
+        })
+    
+    return accounts
+
+
+def create_account(display_name: str, password: str, role: str, email: Optional[str] = None, created_by: str = "Admin") -> str:
+    """
+    Create a new account (admin or operator only - NOT owner).
+    
+    Owner accounts must be created through create_owner() or transfer_owner().
+    
+    Returns the new account's password_id.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    # Prevent creating owner accounts through this function
+    if role == "owner":
+        raise ValueError("Cannot create owner accounts through this method. Use transfer_owner() instead.")
+    
+    # Validate role
+    if role not in ("admin", "operator"):
+        raise ValueError("Role must be 'admin' or 'operator'")
+    
+    # Check if display name already exists
+    existing = passwords.find_one({"display_name": display_name})
+    if existing:
+        raise ValueError(f"An account with display name '{display_name}' already exists")
+    
+    now = datetime.utcnow()
+    doc = {
+        "display_name": display_name,
+        "password_hash": _hash_password(password),
+        "role": role,
+        "email": email.strip() if email else None,
+        "is_active": True,
+        "created_at": now,
+        "created_by": created_by
+    }
+    
+    result = passwords.insert_one(doc)
+    return str(result.inserted_id)
+
+
+def get_account_by_id(account_id: str) -> Optional[Dict]:
+    """
+    Get a single account's details by ID.
+    Returns None if not found.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    from bson import ObjectId
+    
+    try:
+        doc = passwords.find_one({"_id": ObjectId(account_id)})
+    except:
+        return None
+    
+    if not doc:
+        return None
+    
+    return {
+        "account_id": str(doc["_id"]),
+        "display_name": doc.get("display_name", "Unknown"),
+        "email": doc.get("email"),
+        "role": doc.get("role", "operator"),
+        "is_active": doc.get("is_active", True),
+        "created_at": doc.get("created_at"),
+        "created_by": doc.get("created_by"),
+    }
+
+
+def update_account(account_id: str, display_name: Optional[str] = None, email: Optional[str] = None, role: Optional[str] = None) -> None:
+    """
+    Update an account's display name, email, or role.
+    
+    Cannot change owner role through this function (use transfer_owner).
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    from bson import ObjectId
+    
+    # Get current account
+    try:
+        current = passwords.find_one({"_id": ObjectId(account_id)})
+    except:
+        raise ValueError("Invalid account ID")
+    
+    if not current:
+        raise ValueError("Account not found")
+    
+    # Prevent modifying owner accounts
+    if current.get("role") == "owner":
+        raise ValueError("Cannot modify owner account through this method")
+    
+    # Build update fields
+    update_fields = {}
+    
+    if display_name is not None:
+        # Check if new name is taken
+        existing = passwords.find_one({"display_name": display_name, "_id": {"$ne": ObjectId(account_id)}})
+        if existing:
+            raise ValueError(f"Display name '{display_name}' is already taken")
+        update_fields["display_name"] = display_name.strip()
+    
+    if email is not None:
+        update_fields["email"] = email.strip() if email else None
+    
+    if role is not None:
+        if role not in ("admin", "operator"):
+            raise ValueError("Role must be 'admin' or 'operator'")
+        update_fields["role"] = role
+    
+    if not update_fields:
+        return
+    
+    passwords.update_one(
+        {"_id": ObjectId(account_id)},
+        {"$set": update_fields}
+    )
+
+
+def disable_account(account_id: str) -> None:
+    """
+    Disable an account (soft delete - sets is_active to False).
+    Account can be re-enabled later.
+    
+    Cannot disable owner accounts.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    from bson import ObjectId
+    
+    try:
+        account = passwords.find_one({"_id": ObjectId(account_id)})
+    except:
+        raise ValueError("Invalid account ID")
+    
+    if not account:
+        raise ValueError("Account not found")
+    
+    if account.get("role") == "owner":
+        raise ValueError("Cannot disable owner account")
+    
+    passwords.update_one(
+        {"_id": ObjectId(account_id)},
+        {"$set": {"is_active": False}}
+    )
+
+
+def enable_account(account_id: str) -> None:
+    """
+    Re-enable a disabled account.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    from bson import ObjectId
+    
+    try:
+        passwords.update_one(
+            {"_id": ObjectId(account_id)},
+            {"$set": {"is_active": True}}
+        )
+    except:
+        raise ValueError("Invalid account ID")
+
+
+def delete_account(account_id: str) -> None:
+    """
+    Permanently delete an account (hard delete).
+    
+    Cannot delete owner accounts - use transfer_owner or relinquish_owner instead.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    from bson import ObjectId
+    
+    try:
+        account = passwords.find_one({"_id": ObjectId(account_id)})
+    except:
+        raise ValueError("Invalid account ID")
+    
+    if not account:
+        raise ValueError("Account not found")
+    
+    if account.get("role") == "owner":
+        raise ValueError("Cannot delete owner account")
+    
+    passwords.delete_one({"_id": ObjectId(account_id)})
+
+
+def update_account_password(account_id: str, new_password: str) -> None:
+    """
+    Update any account's password (admin function).
+    Used when admin needs to reset someone's password.
+    
+    Cannot change owner password through this - owner must use update_owner_password.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    from bson import ObjectId
+    
+    try:
+        account = passwords.find_one({"_id": ObjectId(account_id)})
+    except:
+        raise ValueError("Invalid account ID")
+    
+    if not account:
+        raise ValueError("Account not found")
+    
+    if account.get("role") == "owner":
+        raise ValueError("Cannot change owner password through this method")
+    
+    password_hash = _hash_password(new_password)
+    
+    passwords.update_one(
+        {"_id": ObjectId(account_id)},
+        {"$set": {"password_hash": password_hash}}
+    )
+
 # ---------- OLD FUNCTIONS (deprecated, kept for backward compatibility) ----------
 
 

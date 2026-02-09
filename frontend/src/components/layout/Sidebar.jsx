@@ -46,6 +46,18 @@ export default function Sidebar({ activeTab, onTabChange, role, displayName, onL
             🔑 Password Manager
           </button>
         )}
+
+        {isAdminLike && (
+          <button
+            className={
+              "sidebar-btn" +
+              (activeTab === "owner" ? " sidebar-btn-active" : "")
+            }
+            onClick={() => onTabChange("owner")}
+          >
+            👑 Owner
+          </button>
+        )}
       </nav>
 
       {/* Simple footer: display name, role label + logout */}

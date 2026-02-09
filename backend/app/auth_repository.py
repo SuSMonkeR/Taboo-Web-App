@@ -140,6 +140,129 @@ def create_owner(display_name: str, password: str) -> str:
     result = passwords.insert_one(doc)
     return str(result.inserted_id)
 
+# Add these functions to auth_repository.py (after the create_owner function)
+
+def get_owner_info() -> Optional[Dict]:
+    """
+    Get the current owner's information.
+    Returns None if no owner exists.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    owner = passwords.find_one({"role": "owner", "is_active": True})
+    
+    if not owner:
+        return None
+    
+    return {
+        "password_id": str(owner["_id"]),
+        "display_name": owner.get("display_name"),
+        "email": owner.get("email"),
+        "created_at": owner.get("created_at")
+    }
+
+
+def transfer_owner(new_display_name: str, new_password: str, current_user_role: str) -> str:
+    """
+    Transfer ownership to a new account.
+    - Current owner becomes admin
+    - New account is created as owner
+    
+    Can only be called by current owner or dev.
+    Returns the new owner's password_id.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    # Find current owner
+    current_owner = passwords.find_one({"role": "owner", "is_active": True})
+    
+    if not current_owner:
+        raise ValueError("No current owner exists")
+    
+    # Demote current owner to admin
+    passwords.update_one(
+        {"_id": current_owner["_id"]},
+        {"$set": {"role": "admin"}}
+    )
+    
+    # Create new owner
+    now = datetime.utcnow()
+    new_owner_doc = {
+        "display_name": new_display_name,
+        "password_hash": _hash_password(new_password),
+        "role": "owner",
+        "is_active": True,
+        "created_at": now,
+        "created_by": current_owner.get("display_name", "Unknown")
+    }
+    
+    result = passwords.insert_one(new_owner_doc)
+    return str(result.inserted_id)
+
+
+def relinquish_owner(owner_password_id: str) -> None:
+    """
+    Owner voluntarily gives up ownership.
+    Owner account becomes admin.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    from bson import ObjectId
+    
+    # Verify this is actually the owner
+    owner = passwords.find_one({"_id": ObjectId(owner_password_id), "role": "owner"})
+    
+    if not owner:
+        raise ValueError("Not the current owner")
+    
+    # Demote to admin
+    passwords.update_one(
+        {"_id": ObjectId(owner_password_id)},
+        {"$set": {"role": "admin"}}
+    )
+
+
+def update_owner_profile(owner_password_id: str, display_name: Optional[str] = None, email: Optional[str] = None) -> None:
+    """
+    Update owner's display name and/or email.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    from bson import ObjectId
+    
+    update_fields = {}
+    if display_name:
+        update_fields["display_name"] = display_name.strip()
+    if email is not None:  # Allow empty string to clear email
+        update_fields["email"] = email.strip() if email else None
+    
+    if not update_fields:
+        return
+    
+    passwords.update_one(
+        {"_id": ObjectId(owner_password_id), "role": "owner"},
+        {"$set": update_fields}
+    )
+
+
+def update_owner_password(owner_password_id: str, new_password: str) -> None:
+    """
+    Update owner's password.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    from bson import ObjectId
+    
+    password_hash = _hash_password(new_password)
+    
+    passwords.update_one(
+        {"_id": ObjectId(owner_password_id), "role": "owner"},
+        {"$set": {"password_hash": password_hash}}
+    )
 
 # ---------- OLD FUNCTIONS (deprecated, kept for backward compatibility) ----------
 

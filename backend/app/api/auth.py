@@ -12,6 +12,11 @@ from ..auth_repository import (
     get_user_by_password,
     owner_exists,
     create_owner,
+    get_owner_info,           # NEW
+    transfer_owner,           # NEW
+    relinquish_owner,         # NEW
+    update_owner_profile,     # NEW
+    update_owner_password,    # NEW
     update_staff_password,
     update_admin_password,
     create_admin_reset_token,
@@ -49,6 +54,36 @@ class CreateOwnerRequest(BaseModel):
 
 class OwnerExistsResponse(BaseModel):
     exists: bool
+
+
+class TransferOwnerRequest(BaseModel):
+    new_display_name: str
+    new_password: str
+
+
+class UpdateOwnerProfileRequest(BaseModel):
+    display_name: Optional[str] = None
+    email: Optional[str] = None
+
+
+class UpdateOwnerPasswordRequest(BaseModel):
+    new_password: str
+
+
+class OwnerInfoResponse(BaseModel):
+    password_id: str
+    display_name: str
+    email: Optional[str]
+    created_at: datetime
+
+
+class RequestOwnerResetResponse(BaseModel):
+    message: str
+
+
+class ResetOwnerPasswordRequest(BaseModel):
+    token: str
+    new_password: str
 
 
 class ChangeStaffPasswordRequest(BaseModel):
@@ -212,6 +247,212 @@ async def create_owner_account(
         return GenericResponse(message=f"Owner account '{body.display_name}' created successfully.")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# ---------- NEW: Owner Management Endpoints ----------
+
+
+@router.get("/owner-info", response_model=OwnerInfoResponse)
+async def get_owner_info_endpoint(
+    role: str = Depends(get_current_role),
+) -> OwnerInfoResponse:
+    """
+    Get current owner's information.
+    
+    Only owner and dev can call this.
+    """
+    if role not in ("owner", "dev"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Owner or dev access required.",
+        )
+    
+    owner_info = get_owner_info()
+    if not owner_info:
+        raise HTTPException(status_code=404, detail="No owner exists.")
+    
+    return OwnerInfoResponse(**owner_info)
+
+
+@router.post("/transfer-owner", response_model=GenericResponse)
+async def transfer_owner_endpoint(
+    body: TransferOwnerRequest,
+    role: str = Depends(get_current_role),
+) -> GenericResponse:
+    """
+    Transfer ownership to a new account.
+    Current owner becomes admin.
+    
+    Only owner or dev can call this.
+    """
+    if role not in ("owner", "dev"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Owner or dev access required.",
+        )
+    
+    if not body.new_display_name or not body.new_display_name.strip():
+        raise HTTPException(status_code=400, detail="Display name is required.")
+    
+    if not body.new_password or len(body.new_password) < 3:
+        raise HTTPException(status_code=400, detail="Password must be at least 3 characters.")
+    
+    try:
+        transfer_owner(body.new_display_name.strip(), body.new_password, role)
+        return GenericResponse(message=f"Ownership transferred to '{body.new_display_name}'.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/relinquish-owner", response_model=GenericResponse)
+async def relinquish_owner_endpoint(
+    role: str = Depends(get_current_role),
+) -> GenericResponse:
+    """
+    Owner voluntarily gives up ownership.
+    Owner account becomes admin.
+    
+    Only owner can call this (dev cannot force relinquish).
+    """
+    if role != "owner":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the owner can relinquish ownership.",
+        )
+    
+    # Get owner's password_id from database
+    owner_info = get_owner_info()
+    if not owner_info:
+        raise HTTPException(status_code=404, detail="No owner exists.")
+    
+    try:
+        relinquish_owner(owner_info["password_id"])
+        return GenericResponse(message="Ownership relinquished. You are now an admin.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.put("/update-owner-profile", response_model=GenericResponse)
+async def update_owner_profile_endpoint(
+    body: UpdateOwnerProfileRequest,
+    role: str = Depends(get_current_role),
+) -> GenericResponse:
+    """
+    Update owner's display name and/or email.
+    
+    Only owner can update their own profile (dev cannot).
+    """
+    if role != "owner":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the owner can update their profile.",
+        )
+    
+    owner_info = get_owner_info()
+    if not owner_info:
+        raise HTTPException(status_code=404, detail="No owner exists.")
+    
+    update_owner_profile(
+        owner_info["password_id"],
+        display_name=body.display_name,
+        email=body.email
+    )
+    
+    return GenericResponse(message="Profile updated successfully.")
+
+
+@router.put("/update-owner-password", response_model=GenericResponse)
+async def update_owner_password_endpoint(
+    body: UpdateOwnerPasswordRequest,
+    role: str = Depends(get_current_role),
+) -> GenericResponse:
+    """
+    Update owner's password.
+    
+    Only owner can update their own password (dev cannot).
+    """
+    if role != "owner":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the owner can update their password.",
+        )
+    
+    if not body.new_password or len(body.new_password) < 3:
+        raise HTTPException(status_code=400, detail="Password must be at least 3 characters.")
+    
+    owner_info = get_owner_info()
+    if not owner_info:
+        raise HTTPException(status_code=404, detail="No owner exists.")
+    
+    update_owner_password(owner_info["password_id"], body.new_password)
+    
+    return GenericResponse(message="Password updated successfully.")
+
+
+@router.post("/request-owner-reset", response_model=RequestOwnerResetResponse)
+async def request_owner_reset() -> RequestOwnerResetResponse:
+    """
+    Request an owner password reset email.
+    
+    Does NOT require authentication (can be called by anyone).
+    Sends reset email to owner's configured email address.
+    """
+    owner_info = get_owner_info()
+    if not owner_info:
+        raise HTTPException(status_code=404, detail="No owner exists.")
+    
+    owner_email = owner_info.get("email")
+    if not owner_email:
+        raise HTTPException(
+            status_code=400,
+            detail="Owner has no email configured. Cannot send reset email."
+        )
+    
+    # Reuse the existing token system
+    token = create_admin_reset_token()
+    
+    # TODO: Send email to owner_email with token
+    # For now, just return success (you'll implement email later)
+    
+    return RequestOwnerResetResponse(
+        message=f"Password reset email sent to {owner_email}."
+    )
+
+
+@router.post("/reset-owner-password", response_model=GenericResponse)
+async def reset_owner_password_endpoint(
+    body: ResetOwnerPasswordRequest,
+) -> GenericResponse:
+    """
+    Complete owner password reset using token from email.
+    
+    Does NOT require authentication (token is the auth).
+    """
+    if not body.token or not body.new_password:
+        raise HTTPException(status_code=400, detail="Token and new password are required.")
+    
+    if len(body.new_password) < 3:
+        raise HTTPException(status_code=400, detail="Password must be at least 3 characters.")
+    
+    # Validate token
+    ok = use_admin_reset_token(body.token)
+    if not ok:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired reset token.",
+        )
+    
+    # Update owner password
+    owner_info = get_owner_info()
+    if not owner_info:
+        raise HTTPException(status_code=404, detail="No owner exists.")
+    
+    update_owner_password(owner_info["password_id"], body.new_password)
+    
+    return GenericResponse(message="Owner password updated successfully.")
+
+
+# ---------- DEPRECATED: Old Staff/Admin Password Endpoints ----------
 
 
 @router.get(

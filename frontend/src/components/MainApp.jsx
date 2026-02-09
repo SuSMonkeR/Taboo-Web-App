@@ -3,9 +3,10 @@ import AppShell from "./layout/AppShell";
 import PlayView from "./play/PlayView";
 import ManageView from "./manage/ManageView";
 import PasswordManagerTab from "./PasswordManagerTab";
+import OwnerTab from "./OwnerTab";
 
 export default function MainApp({ role, token, displayName, onLogout }) {
-  const [activeTab, setActiveTab] = useState("play"); // "play" | "manage" | "password-manager"
+  const [activeTab, setActiveTab] = useState("play"); // "play" | "manage" | "password-manager" | "owner"
 
   const isAdminLike = role === "admin" || role === "dev" || role === "owner";
 
@@ -26,6 +27,9 @@ export default function MainApp({ role, token, displayName, onLogout }) {
   } else if (activeTab === "password-manager") {
     // pass role + token down so the tab can authorize + call APIs
     content = <PasswordManagerTab role={role} token={token} />;
+  } else if (activeTab === "owner") {
+    // pass role + token down so the tab can authorize + call APIs
+    content = <OwnerTab role={role} token={token} />;
   }
 
   return (

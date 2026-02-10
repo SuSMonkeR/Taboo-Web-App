@@ -25,13 +25,22 @@ from ..auth_repository import (
     enable_account,           # NEW - Account Management
     delete_account,           # NEW - Account Management
     update_account_password,  # NEW - Account Management
+    create_password_reset_token,  # NEW - Password Reset
+    validate_password_reset_token,  # NEW - Password Reset
+    use_password_reset_token,  # NEW - Password Reset
+    get_account_by_email,     # NEW - Password Reset
     update_staff_password,
     update_admin_password,
     create_admin_reset_token,
     use_admin_reset_token,
     get_staff_password_plain,
 )
-from ..email_service import send_admin_reset_email, send_owner_reset_email
+from ..email_service import (
+    send_admin_reset_email, 
+    send_owner_reset_email,
+    send_password_reset_email,  # NEW
+    send_password_reset_confirmation_email,  # NEW
+)
 
 router = APIRouter(
     prefix="/auth",
@@ -221,6 +230,41 @@ def require_dev_only(role: str = Depends(get_current_role)) -> str:
             detail="Dev access required.",
         )
     return role
+
+
+# ---------- Permission Helper ----------
+
+
+def can_modify_account(current_role: str, target_account: dict) -> bool:
+    """
+    Check if current user can modify target account based on hierarchy.
+    
+    Hierarchy rules:
+    - dev: Can modify everyone
+    - owner: Can modify admin and operator (not other owners)
+    - admin: Can ONLY modify operator (peers at the table, can see but not touch)
+    - operator: Cannot modify anyone
+    """
+    target_role = target_account.get("role")
+    
+    # Dev can do everything
+    if current_role == "dev":
+        return True
+    
+    # Nobody can modify owner accounts (except dev)
+    if target_role == "owner":
+        return False
+    
+    # Owner can modify admins and operators
+    if current_role == "owner":
+        return target_role in ("admin", "operator")
+    
+    # Admin can ONLY modify operators (peer restriction - same level at the table)
+    if current_role == "admin":
+        return target_role == "operator"
+    
+    # Operators can't modify anyone
+    return False
 
 
 # ---------- Routes ----------
@@ -570,9 +614,19 @@ async def update_account_endpoint(
     """
     Update an account's display name, email, or role.
     
-    Cannot modify owner accounts.
-    Only admin, owner, or dev can update accounts.
+    Hierarchy enforced: admin can only modify operators, owner can modify admin+operator.
     """
+    # Permission check
+    target_account = get_account_by_id(account_id)
+    if not target_account:
+        raise HTTPException(status_code=404, detail="Account not found.")
+    
+    if not can_modify_account(role, target_account):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to modify this account."
+        )
+    
     try:
         update_account(
             account_id=account_id,
@@ -593,9 +647,19 @@ async def disable_account_endpoint(
     """
     Disable an account (soft delete).
     
-    Cannot disable owner accounts.
-    Only admin, owner, or dev can disable accounts.
+    Hierarchy enforced: admin can only modify operators, owner can modify admin+operator.
     """
+    # Permission check
+    target_account = get_account_by_id(account_id)
+    if not target_account:
+        raise HTTPException(status_code=404, detail="Account not found.")
+    
+    if not can_modify_account(role, target_account):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to modify this account."
+        )
+    
     try:
         disable_account(account_id)
         return GenericResponse(message="Account disabled successfully.")
@@ -611,8 +675,19 @@ async def enable_account_endpoint(
     """
     Re-enable a disabled account.
     
-    Only admin, owner, or dev can enable accounts.
+    Hierarchy enforced: admin can only modify operators, owner can modify admin+operator.
     """
+    # Permission check
+    target_account = get_account_by_id(account_id)
+    if not target_account:
+        raise HTTPException(status_code=404, detail="Account not found.")
+    
+    if not can_modify_account(role, target_account):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to modify this account."
+        )
+    
     try:
         enable_account(account_id)
         return GenericResponse(message="Account enabled successfully.")
@@ -628,9 +703,19 @@ async def delete_account_endpoint(
     """
     Permanently delete an account.
     
-    Cannot delete owner accounts.
-    Only admin, owner, or dev can delete accounts.
+    Hierarchy enforced: admin can only modify operators, owner can modify admin+operator.
     """
+    # Permission check
+    target_account = get_account_by_id(account_id)
+    if not target_account:
+        raise HTTPException(status_code=404, detail="Account not found.")
+    
+    if not can_modify_account(role, target_account):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to modify this account."
+        )
+    
     try:
         delete_account(account_id)
         return GenericResponse(message="Account deleted successfully.")
@@ -647,17 +732,164 @@ async def update_account_password_endpoint(
     """
     Reset an account's password (admin function).
     
-    Cannot change owner password through this endpoint.
-    Only admin, owner, or dev can reset passwords.
+    Hierarchy enforced: admin can only modify operators, owner can modify admin+operator.
     """
     if not body.new_password or len(body.new_password) < 3:
         raise HTTPException(status_code=400, detail="Password must be at least 3 characters.")
+    
+    # Permission check
+    target_account = get_account_by_id(account_id)
+    if not target_account:
+        raise HTTPException(status_code=404, detail="Account not found.")
+    
+    if not can_modify_account(role, target_account):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to modify this account."
+        )
     
     try:
         update_account_password(account_id, body.new_password)
         return GenericResponse(message="Password updated successfully.")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# ---------- Password Reset Endpoints ----------
+
+
+class RequestPasswordResetRequest(BaseModel):
+    email: str
+
+
+class ValidateResetTokenRequest(BaseModel):
+    token: str
+
+
+class ValidateResetTokenResponse(BaseModel):
+    valid: bool
+    email: Optional[str] = None
+    expires_in_minutes: Optional[int] = None
+
+
+class ResetPasswordWithTokenRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+@router.post("/request-password-reset", response_model=GenericResponse)
+async def request_password_reset(body: RequestPasswordResetRequest) -> GenericResponse:
+    """
+    Request a password reset link via email.
+    
+    Does NOT require authentication.
+    Generic response regardless of whether email exists (security).
+    """
+    if not body.email or not body.email.strip():
+        raise HTTPException(status_code=400, detail="Email is required.")
+    
+    email = body.email.strip().lower()
+    
+    # Create token if email exists (returns None if not found)
+    token = create_password_reset_token(email)
+    
+    # If token was created, send the email
+    if token:
+        # Build full reset link
+        # In production, use your actual domain
+        frontend_url = settings.FRONTEND_URL if hasattr(settings, "FRONTEND_URL") else "http://localhost:5173"
+        reset_link = f"{frontend_url}/reset-password?token={token}"
+        
+        try:
+            send_password_reset_email(email, reset_link)
+        except Exception as e:
+            # Log error but don't expose to user
+            print(f"Error sending password reset email: {e}")
+    
+    # ALWAYS return generic message (security - don't reveal if email exists)
+    return GenericResponse(
+        message="If that email exists in our system, a password reset link has been sent."
+    )
+
+
+@router.post("/validate-reset-token", response_model=ValidateResetTokenResponse)
+async def validate_reset_token_endpoint(body: ValidateResetTokenRequest) -> ValidateResetTokenResponse:
+    """
+    Validate a password reset token without consuming it.
+    
+    Used by frontend to check if token is valid before showing password form.
+    Does NOT require authentication.
+    """
+    if not body.token:
+        return ValidateResetTokenResponse(valid=False)
+    
+    token_info = validate_password_reset_token(body.token)
+    
+    if not token_info:
+        return ValidateResetTokenResponse(valid=False)
+    
+    # Calculate minutes until expiration
+    expires_at = token_info.get("expires_at")
+    minutes_left = None
+    if expires_at:
+        from datetime import datetime
+        delta = expires_at - datetime.utcnow()
+        minutes_left = max(0, int(delta.total_seconds() / 60))
+    
+    return ValidateResetTokenResponse(
+        valid=True,
+        email=token_info.get("email"),
+        expires_in_minutes=minutes_left
+    )
+
+
+@router.post("/reset-password-with-token", response_model=GenericResponse)
+async def reset_password_with_token_endpoint(body: ResetPasswordWithTokenRequest) -> GenericResponse:
+    """
+    Reset password using a valid token.
+    
+    Does NOT require authentication (token is the auth).
+    Consumes the token (single-use).
+    Sends confirmation email.
+    """
+    if not body.token or not body.new_password:
+        raise HTTPException(status_code=400, detail="Token and new password are required.")
+    
+    # No minimum password length - user freedom!
+    # Password strength is visual feedback only
+    
+    # Get account email before consuming token
+    token_info = validate_password_reset_token(body.token)
+    if not token_info:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired reset token."
+        )
+    
+    email = token_info.get("email")
+    
+    # Reset password (this consumes the token)
+    success = use_password_reset_token(body.token, body.new_password)
+    
+    if not success:
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to reset password. Token may have expired."
+        )
+    
+    # Send confirmation email
+    if email:
+        account = get_account_by_email(email)
+        if account:
+            try:
+                send_password_reset_confirmation_email(
+                    email, 
+                    account.get("display_name", "User")
+                )
+            except Exception:
+                pass  # Silently fail for confirmation emails
+    
+    return GenericResponse(message="Password reset successfully! You can now log in with your new password.")
 
 
 # ---------- DEPRECATED: Old Staff/Admin Password Endpoints ----------

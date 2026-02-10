@@ -43,7 +43,7 @@ export default function Sidebar({ activeTab, onTabChange, role, displayName, onL
             }
             onClick={() => onTabChange("password-manager")}
           >
-            🔑 Password Manager
+            👥 Account Management
           </button>
         )}
 

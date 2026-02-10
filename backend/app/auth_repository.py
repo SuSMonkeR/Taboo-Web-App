@@ -621,7 +621,130 @@ def get_staff_password_plain() -> Optional[str]:
     return None
 
 
-# ---------- Admin reset tokens ----------
+# ---------- Password Reset Tokens (Email-Based) ----------
+
+
+def create_password_reset_token(email: str, ttl_hours: int = 1) -> Optional[str]:
+    """
+    Create a password reset token for a user with the given email.
+    
+    Returns the token string if email exists, None if email not found.
+    Token expires in 1 hour by default.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    # Find account with this email
+    account = passwords.find_one({"email": email, "is_active": True})
+    if not account:
+        return None
+    
+    # Create token
+    tokens = db[ADMIN_RESET_TOKENS_COLLECTION]
+    token = secrets.token_urlsafe(32)
+    now = datetime.utcnow()
+    expires_at = now + timedelta(hours=ttl_hours)
+    
+    tokens.insert_one({
+        "token": token,
+        "email": email,
+        "account_id": str(account["_id"]),
+        "requested_at": now,
+        "expires_at": expires_at,
+        "used": False,
+    })
+    
+    return token
+
+
+def validate_password_reset_token(token: str) -> Optional[Dict]:
+    """
+    Validate a password reset token without consuming it.
+    
+    Returns account info if valid: {"account_id": str, "email": str, "expires_at": datetime}
+    Returns None if token is invalid, expired, or already used.
+    """
+    db = get_db()
+    tokens = db[ADMIN_RESET_TOKENS_COLLECTION]
+    
+    doc = tokens.find_one({"token": token})
+    if not doc:
+        return None
+    
+    if doc.get("used"):
+        return None
+    
+    expires_at = doc.get("expires_at")
+    if isinstance(expires_at, datetime) and expires_at < datetime.utcnow():
+        return None
+    
+    return {
+        "account_id": doc.get("account_id"),
+        "email": doc.get("email"),
+        "expires_at": expires_at,
+    }
+
+
+def use_password_reset_token(token: str, new_password: str) -> bool:
+    """
+    Consume a password reset token and update the user's password.
+    
+    Returns True if successful.
+    Returns False if token is invalid, expired, or already used.
+    """
+    db = get_db()
+    tokens = db[ADMIN_RESET_TOKENS_COLLECTION]
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    # Validate token
+    token_info = validate_password_reset_token(token)
+    if not token_info:
+        return False
+    
+    from bson import ObjectId
+    
+    # Update password
+    account_id = token_info["account_id"]
+    password_hash = _hash_password(new_password)
+    
+    result = passwords.update_one(
+        {"_id": ObjectId(account_id)},
+        {"$set": {"password_hash": password_hash}}
+    )
+    
+    if result.modified_count == 0:
+        return False
+    
+    # Mark token as used
+    tokens.update_one(
+        {"token": token},
+        {"$set": {"used": True}}
+    )
+    
+    return True
+
+
+def get_account_by_email(email: str) -> Optional[Dict]:
+    """
+    Get account info by email address.
+    Returns None if not found.
+    """
+    db = get_db()
+    passwords = db[PASSWORDS_COLLECTION]
+    
+    doc = passwords.find_one({"email": email, "is_active": True})
+    if not doc:
+        return None
+    
+    return {
+        "account_id": str(doc["_id"]),
+        "display_name": doc.get("display_name"),
+        "email": doc.get("email"),
+        "role": doc.get("role"),
+    }
+
+
+# ---------- OLD: Admin reset tokens (DEPRECATED) ----------
 
 
 def create_admin_reset_token(ttl_hours: int = 24) -> str:

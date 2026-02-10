@@ -1,5 +1,6 @@
 // frontend/src/components/LoginPage.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./login.css";
 import ShootingStarsCanvas from "./ShootingStarsCanvas";
 import buildAmogusPalettes from "./amogusPalette";
@@ -16,6 +17,8 @@ const amongusBase = "/amogus.png";
  */
 
 export default function LoginPage({ onLogin }) {
+  const navigate = useNavigate();
+  
   // ===== DO NOT CHANGE FUNCTIONALITY =====
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -577,6 +580,29 @@ export default function LoginPage({ onLogin }) {
 
           <div className="loginHints">
             {error && <div className="hint err">{error}</div>}
+            
+            {/* Forgot Password Link */}
+            <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+              <button
+                type="button"
+                onClick={() => navigate('/forgot-password')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#a78bfa',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: '500',
+                  textDecoration: 'underline',
+                  padding: '0.5rem',
+                  transition: 'color 0.2s',
+                }}
+                onMouseEnter={(e) => e.target.style.color = '#c4b5fd'}
+                onMouseLeave={(e) => e.target.style.color = '#a78bfa'}
+              >
+                Forgot password?
+              </button>
+            </div>
           </div>
         </div>
       </div>

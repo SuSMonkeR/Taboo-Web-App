@@ -68,9 +68,12 @@ class Settings(BaseSettings):
     # === Google Sheets API ===
     GOOGLE_SHEETS_API_KEY: Optional[str] = None
 
-    # === Frontend URL (for CORS allowlist) ===
+    # === Frontend URL (for CORS allowlist and password reset emails) ===
     # Set on Render: REACT_FRONTEND_URL=https://taboo-web-app.onrender.com
     REACT_FRONTEND_URL: str = ""
+    
+    # Frontend URL for password reset emails (defaults to REACT_FRONTEND_URL)
+    FRONTEND_URL: str = ""
 
     # Optional: allow multiple origins via env var, comma-separated.
     # Set on Render if needed: CORS_ORIGINS="https://taboo-web-app.onrender.com,https://your-custom-domain.com"

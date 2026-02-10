@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import "./global.css";
 import LoginPage from "./components/LoginPage";
 import MainApp from "./components/MainApp";
+import ForgotPasswordPage from "./components/ForgotPasswordPage";
+import ResetPasswordPage from "./components/ResetPasswordPage";
 
 export default function App() {
   // Initialize auth state from localStorage so refresh keeps you logged in
@@ -36,16 +39,38 @@ export default function App() {
     setAuth({ token: null, role: null, displayName: null });
   };
 
-  if (!auth.token || !auth.role) {
-    return <LoginPage onLogin={handleLogin} />;
-  }
-
   return (
-    <MainApp
-      role={auth.role}
-      token={auth.token}
-      displayName={auth.displayName}
-      onLogout={handleLogout}
-    />
+    <Router>
+      <Routes>
+        {/* Public Routes (No Auth Required) */}
+        <Route 
+          path="/login" 
+          element={
+            auth.token ? 
+              <Navigate to="/" replace /> : 
+              <LoginPage onLogin={handleLogin} />
+          } 
+        />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+        {/* Protected Route (Auth Required) */}
+        <Route 
+          path="/*" 
+          element={
+            auth.token && auth.role ? (
+              <MainApp
+                role={auth.role}
+                token={auth.token}
+                displayName={auth.displayName}
+                onLogout={handleLogout}
+              />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
+        />
+      </Routes>
+    </Router>
   );
 }

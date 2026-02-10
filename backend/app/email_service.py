@@ -116,3 +116,108 @@ def send_admin_reset_email(to_email: str, token: str, email_type: str = "admin")
 def send_owner_reset_email(to_email: str, token: str) -> None:
     """Send owner password reset email."""
     send_admin_reset_email(to_email, token, email_type="owner")
+
+
+def send_password_reset_email(to_email: str, reset_link: str, ip_address: str = "Unknown") -> None:
+    """
+    Send a beautiful HTML password reset email using Resend.
+    
+    Args:
+        to_email: Recipient email address
+        reset_link: Full URL with token for password reset
+        ip_address: IP address of requester (for security info)
+    
+    Raises:
+        RuntimeError: If Resend is not configured or sending fails
+    """
+    from .email_templates import get_password_reset_email_html
+    
+    # Validate recipient
+    if not to_email or not to_email.strip():
+        raise RuntimeError("No recipient email provided for password reset.")
+    
+    # Check if Resend is installed
+    if resend is None:
+        raise RuntimeError("Resend package not installed. Run: pip install resend")
+    
+    # Get API key
+    api_key = getattr(settings, "RESEND_API_KEY", None) or _get_env("RESEND_API_KEY")
+    
+    if not api_key:
+        raise RuntimeError("Resend not configured. Set RESEND_API_KEY environment variable.")
+    
+    # Set API key
+    resend.api_key = api_key
+    
+    # Get from address
+    from_email = getattr(settings, "RESEND_FROM_EMAIL", None) or _get_env(
+        "RESEND_FROM_EMAIL", "onboarding@resend.dev"
+    )
+    
+    # Generate HTML email
+    html_body = get_password_reset_email_html(reset_link, ip_address)
+    
+    try:
+        # Send email with HTML
+        result = resend.Emails.send({
+            "from": from_email,
+            "to": to_email.strip(),
+            "subject": "Reset Your Taboo Password",
+            "html": html_body,
+        })
+        
+        if not result or not result.get("id"):
+            raise RuntimeError("Resend send failed: No email ID returned")
+            
+    except Exception as e:
+        raise RuntimeError(f"Failed to send email via Resend: {str(e)}")
+
+
+def send_password_reset_confirmation_email(to_email: str, display_name: str) -> None:
+    """
+    Send a confirmation email after password is successfully reset.
+    
+    Args:
+        to_email: Recipient email address
+        display_name: User's display name
+    
+    Raises:
+        RuntimeError: If Resend is not configured or sending fails
+    """
+    from .email_templates import get_password_reset_confirmation_email_html
+    
+    # Validate recipient
+    if not to_email or not to_email.strip():
+        return  # Silently fail for confirmation emails
+    
+    # Check if Resend is installed
+    if resend is None:
+        return
+    
+    # Get API key
+    api_key = getattr(settings, "RESEND_API_KEY", None) or _get_env("RESEND_API_KEY")
+    
+    if not api_key:
+        return
+    
+    # Set API key
+    resend.api_key = api_key
+    
+    # Get from address
+    from_email = getattr(settings, "RESEND_FROM_EMAIL", None) or _get_env(
+        "RESEND_FROM_EMAIL", "onboarding@resend.dev"
+    )
+    
+    # Generate HTML email
+    html_body = get_password_reset_confirmation_email_html(display_name)
+    
+    try:
+        # Send email with HTML
+        resend.Emails.send({
+            "from": from_email,
+            "to": to_email.strip(),
+            "subject": "Your Taboo Password Was Changed",
+            "html": html_body,
+        })
+    except Exception:
+        pass  # Silently fail for confirmation emails

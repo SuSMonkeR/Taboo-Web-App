@@ -49,7 +49,12 @@ class Settings(BaseSettings):
     # === Admin password reset ===
     ADMIN_RESET_EMAIL: Optional[str] = None
 
-    # === Outgoing email (for admin reset token emails) ===
+    # === Outgoing email (for password reset emails) ===
+    # Resend (recommended - simple and reliable)
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "onboarding@resend.dev"
+    
+    # Legacy email config (kept for backwards compatibility, not actively used)
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None
@@ -59,6 +64,7 @@ class Settings(BaseSettings):
     MAILGUN_DOMAIN: str = ""
     MAILGUN_BASE_URL: str = "https://api.mailgun.net"
     MAILGUN_FROM: str = ""
+    
     # === Google Sheets API ===
     GOOGLE_SHEETS_API_KEY: Optional[str] = None
 

@@ -3,139 +3,116 @@
 from __future__ import annotations
 
 import os
-import smtplib
-from email.message import EmailMessage
 from typing import Optional
 
-import requests
+try:
+    import resend
+except ImportError:
+    resend = None
 
 from .config import settings
 
 
-def _build_reset_email(token: str) -> tuple[str, str]:
-    subject = "Taboo Admin Password Reset Token"
-    body = (
-        "A request was made to reset the admin password for the Taboo web app.\n\n"
-        "If you did not request this, you can safely ignore this email.\n\n"
-        "Use the following reset token inside the Taboo app:\n\n"
-        f"{token}\n\n"
-        "Open the Taboo app, go to the Password Manager tab,\n"
-        "paste the token, enter a new admin password, and submit.\n\n"
-        "This token will expire according to server rules.\n"
-    )
-    return subject, body
+def _build_reset_email(token: str, email_type: str = "admin") -> tuple[str, str]:
+    """
+    Build email subject and body for password reset.
+    
+    email_type: "admin" or "owner"
+    """
+    if email_type == "owner":
+        subject = "Taboo Owner Password Reset Token"
+        body = f"""
+A request was made to reset the owner password for the Taboo web app.
+
+If you did not request this, you can safely ignore this email.
+
+Use the following reset token inside the Taboo app:
+
+{token}
+
+Open the Taboo app, go to the Owner tab, paste the token, enter a new password, and submit.
+
+This token will expire in 24 hours.
+"""
+    else:
+        subject = "Taboo Admin Password Reset Token"
+        body = f"""
+A request was made to reset the admin password for the Taboo web app.
+
+If you did not request this, you can safely ignore this email.
+
+Use the following reset token inside the Taboo app:
+
+{token}
+
+Open the Taboo app, go to the Password Manager tab, paste the token, enter a new admin password, and submit.
+
+This token will expire according to server rules.
+"""
+    
+    return subject, body.strip()
 
 
 def _get_env(name: str, default: str = "") -> str:
+    """Get environment variable with fallback."""
     return os.getenv(name, default).strip()
 
 
-def _mailgun_send(to_email: str, subject: str, body: str) -> None:
+def send_admin_reset_email(to_email: str, token: str, email_type: str = "admin") -> None:
     """
-    Send email via Mailgun HTTP API (recommended for Render free tier).
-    Required env/config:
-      - MAILGUN_API_KEY
-      - MAILGUN_DOMAIN   (e.g. sandbox....mailgun.org)
-    Optional:
-      - MAILGUN_FROM     (defaults to postmaster@<domain>)
-      - MAILGUN_BASE_URL (defaults to https://api.mailgun.net)
+    Send a password reset email using Resend.
+    
+    Args:
+        to_email: Recipient email address
+        token: Password reset token
+        email_type: "admin" or "owner" (determines email content)
+    
+    Raises:
+        RuntimeError: If Resend is not configured or sending fails
     """
-    # Pull from Settings if you add them later, otherwise fallback to env vars.
-    api_key = getattr(settings, "MAILGUN_API_KEY", None) or _get_env("MAILGUN_API_KEY")
-    domain = getattr(settings, "MAILGUN_DOMAIN", None) or _get_env("MAILGUN_DOMAIN")
-    base_url = getattr(settings, "MAILGUN_BASE_URL", None) or _get_env(
-        "MAILGUN_BASE_URL", "https://api.mailgun.net"
+    # Validate recipient
+    if not to_email or not to_email.strip():
+        raise RuntimeError("No recipient email provided for password reset.")
+    
+    # Check if Resend is installed
+    if resend is None:
+        raise RuntimeError("Resend package not installed. Run: pip install resend")
+    
+    # Get API key
+    api_key = getattr(settings, "RESEND_API_KEY", None) or _get_env("RESEND_API_KEY")
+    
+    if not api_key:
+        raise RuntimeError("Resend not configured. Set RESEND_API_KEY environment variable.")
+    
+    # Set API key
+    resend.api_key = api_key
+    
+    # Get from address (default to onboarding@resend.dev for sandbox)
+    from_email = getattr(settings, "RESEND_FROM_EMAIL", None) or _get_env(
+        "RESEND_FROM_EMAIL", "onboarding@resend.dev"
     )
-    from_addr = getattr(settings, "MAILGUN_FROM", None) or _get_env("MAILGUN_FROM")
-
-    if not api_key or not domain:
-        raise RuntimeError(
-            "Mailgun not configured. Set MAILGUN_API_KEY and MAILGUN_DOMAIN."
-        )
-
-    if not from_addr:
-        from_addr = f"postmaster@{domain}"
-
-    url = f"{base_url.rstrip('/')}/v3/{domain}/messages"
-
-    resp = requests.post(
-        url,
-        auth=("api", api_key),
-        data={
-            "from": f"Taboo Admin <{from_addr}>",
-            "to": to_email,
+    
+    # Build email content
+    subject, body = _build_reset_email(token, email_type)
+    
+    try:
+        # Send email
+        result = resend.Emails.send({
+            "from": from_email,
+            "to": to_email.strip(),
             "subject": subject,
             "text": body,
-        },
-        timeout=12,
-    )
-
-    if not resp.ok:
-        # Include Mailgun's response body to make debugging painless.
-        raise RuntimeError(
-            f"Mailgun send failed: {resp.status_code} {resp.text}"
-        )
-
-
-def _smtp_send(to_email: str, subject: str, body: str) -> None:
-    """
-    Send using SMTP (works locally; Render free tier blocks SMTP ports).
-    Uses existing settings.* fields.
-    """
-    msg = EmailMessage()
-    msg["From"] = settings.SMTP_USER or "no-reply@example.com"
-    msg["To"] = to_email
-    msg["Subject"] = subject
-    msg.set_content(body)
-
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=12) as server:
-        if settings.SMTP_USE_TLS:
-            server.starttls()
-
-        if settings.SMTP_USER and settings.SMTP_PASSWORD:
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-
-        server.send_message(msg)
+        })
+        
+        # Resend returns a dict with 'id' on success
+        if not result or not result.get("id"):
+            raise RuntimeError("Resend send failed: No email ID returned")
+            
+    except Exception as e:
+        raise RuntimeError(f"Failed to send email via Resend: {str(e)}")
 
 
-def send_admin_reset_email(to_email: str, token: str) -> None:
-    """
-    Send an admin password reset email containing ONLY the reset token.
-
-    Delivery priority:
-      1) Mailgun (HTTP API) if configured (works on Render free tier)
-      2) SMTP if configured (works locally; likely blocked on Render free)
-      3) Dev-mode print to logs if neither configured
-
-    This function raises on failure (so the API can return an error instead of "green").
-    """
-    subject, body = _build_reset_email(token)
-
-    # Safety: nothing to do if no recipient passed
-    if not to_email or not to_email.strip():
-        raise RuntimeError("No recipient email provided for admin reset.")
-
-    # Try Mailgun first (best for Render)
-    mailgun_key_present = bool(
-        getattr(settings, "MAILGUN_API_KEY", None) or _get_env("MAILGUN_API_KEY")
-    )
-    mailgun_domain_present = bool(
-        getattr(settings, "MAILGUN_DOMAIN", None) or _get_env("MAILGUN_DOMAIN")
-    )
-
-    if mailgun_key_present and mailgun_domain_present:
-        _mailgun_send(to_email.strip(), subject, body)
-        return
-
-    # Otherwise try SMTP if configured
-    if settings.SMTP_HOST:
-        _smtp_send(to_email.strip(), subject, body)
-        return
-
-    # Dev fallback
-    print("=== Admin Reset Email (DEV MODE) ===")
-    print(f"To: {to_email}")
-    print(f"Subject: {subject}")
-    print()
-    print(body)
-    print("=== End Email ===")
+# Alias for backwards compatibility
+def send_owner_reset_email(to_email: str, token: str) -> None:
+    """Send owner password reset email."""
+    send_admin_reset_email(to_email, token, email_type="owner")

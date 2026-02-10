@@ -17,13 +17,21 @@ from ..auth_repository import (
     relinquish_owner,         # NEW
     update_owner_profile,     # NEW
     update_owner_password,    # NEW
+    list_all_accounts,        # NEW - Account Management
+    create_account,           # NEW - Account Management
+    get_account_by_id,        # NEW - Account Management
+    update_account,           # NEW - Account Management
+    disable_account,          # NEW - Account Management
+    enable_account,           # NEW - Account Management
+    delete_account,           # NEW - Account Management
+    update_account_password,  # NEW - Account Management
     update_staff_password,
     update_admin_password,
     create_admin_reset_token,
     use_admin_reset_token,
     get_staff_password_plain,
 )
-from ..email_service import send_admin_reset_email
+from ..email_service import send_admin_reset_email, send_owner_reset_email
 
 router = APIRouter(
     prefix="/auth",
@@ -105,6 +113,40 @@ class GenericResponse(BaseModel):
 
 class StaffPasswordResponse(BaseModel):
     password: str
+
+# ---------- Account Management Models ----------
+
+
+class AccountResponse(BaseModel):
+    account_id: str
+    display_name: str
+    email: Optional[str]
+    role: str
+    is_active: bool
+    created_at: Optional[datetime]
+    created_by: Optional[str]
+
+
+class AccountListResponse(BaseModel):
+    accounts: list[AccountResponse]
+    total: int
+
+
+class CreateAccountRequest(BaseModel):
+    display_name: str
+    password: str
+    role: str  # "admin" | "operator"
+    email: Optional[str] = None
+
+
+class UpdateAccountRequest(BaseModel):
+    display_name: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[str] = None
+
+
+class UpdateAccountPasswordRequest(BaseModel):
+    new_password: str
 
 
 # ---------- JWT helpers ----------
@@ -408,11 +450,9 @@ async def request_owner_reset() -> RequestOwnerResetResponse:
             detail="Owner has no email configured. Cannot send reset email."
         )
     
-    # Reuse the existing token system
+    # Create token and send email
     token = create_admin_reset_token()
-    
-    # TODO: Send email to owner_email with token
-    # For now, just return success (you'll implement email later)
+    send_owner_reset_email(owner_email, token)
     
     return RequestOwnerResetResponse(
         message=f"Password reset email sent to {owner_email}."
@@ -450,6 +490,174 @@ async def reset_owner_password_endpoint(
     update_owner_password(owner_info["password_id"], body.new_password)
     
     return GenericResponse(message="Owner password updated successfully.")
+
+# ---------- Account Management Endpoints ----------
+
+
+@router.get("/accounts", response_model=AccountListResponse)
+async def list_accounts(
+    role: str = Depends(require_admin_or_dev),
+) -> AccountListResponse:
+    """
+    List all accounts in the system.
+    
+    Only admin, owner, or dev can view accounts.
+    """
+    accounts = list_all_accounts()
+    
+    return AccountListResponse(
+        accounts=[AccountResponse(**acc) for acc in accounts],
+        total=len(accounts)
+    )
+
+
+@router.post("/accounts", response_model=GenericResponse)
+async def create_account_endpoint(
+    body: CreateAccountRequest,
+    role: str = Depends(require_admin_or_dev),
+) -> GenericResponse:
+    """
+    Create a new account (admin or operator only).
+    
+    Cannot create owner accounts through this endpoint.
+    Only admin, owner, or dev can create accounts.
+    """
+    if not body.display_name or not body.display_name.strip():
+        raise HTTPException(status_code=400, detail="Display name is required.")
+    
+    if not body.password or len(body.password) < 3:
+        raise HTTPException(status_code=400, detail="Password must be at least 3 characters.")
+    
+    if body.role not in ("admin", "operator"):
+        raise HTTPException(status_code=400, detail="Role must be 'admin' or 'operator'.")
+    
+    try:
+        account_id = create_account(
+            display_name=body.display_name.strip(),
+            password=body.password,
+            role=body.role,
+            email=body.email,
+            created_by=role  # Track who created this account
+        )
+        return GenericResponse(message=f"Account '{body.display_name}' created successfully.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/accounts/{account_id}", response_model=AccountResponse)
+async def get_account(
+    account_id: str,
+    role: str = Depends(require_admin_or_dev),
+) -> AccountResponse:
+    """
+    Get a single account's details.
+    
+    Only admin, owner, or dev can view account details.
+    """
+    account = get_account_by_id(account_id)
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found.")
+    
+    return AccountResponse(**account)
+
+
+@router.put("/accounts/{account_id}", response_model=GenericResponse)
+async def update_account_endpoint(
+    account_id: str,
+    body: UpdateAccountRequest,
+    role: str = Depends(require_admin_or_dev),
+) -> GenericResponse:
+    """
+    Update an account's display name, email, or role.
+    
+    Cannot modify owner accounts.
+    Only admin, owner, or dev can update accounts.
+    """
+    try:
+        update_account(
+            account_id=account_id,
+            display_name=body.display_name,
+            email=body.email,
+            role=body.role
+        )
+        return GenericResponse(message="Account updated successfully.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/accounts/{account_id}/disable", response_model=GenericResponse)
+async def disable_account_endpoint(
+    account_id: str,
+    role: str = Depends(require_admin_or_dev),
+) -> GenericResponse:
+    """
+    Disable an account (soft delete).
+    
+    Cannot disable owner accounts.
+    Only admin, owner, or dev can disable accounts.
+    """
+    try:
+        disable_account(account_id)
+        return GenericResponse(message="Account disabled successfully.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/accounts/{account_id}/enable", response_model=GenericResponse)
+async def enable_account_endpoint(
+    account_id: str,
+    role: str = Depends(require_admin_or_dev),
+) -> GenericResponse:
+    """
+    Re-enable a disabled account.
+    
+    Only admin, owner, or dev can enable accounts.
+    """
+    try:
+        enable_account(account_id)
+        return GenericResponse(message="Account enabled successfully.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/accounts/{account_id}", response_model=GenericResponse)
+async def delete_account_endpoint(
+    account_id: str,
+    role: str = Depends(require_admin_or_dev),
+) -> GenericResponse:
+    """
+    Permanently delete an account.
+    
+    Cannot delete owner accounts.
+    Only admin, owner, or dev can delete accounts.
+    """
+    try:
+        delete_account(account_id)
+        return GenericResponse(message="Account deleted successfully.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.put("/accounts/{account_id}/password", response_model=GenericResponse)
+async def update_account_password_endpoint(
+    account_id: str,
+    body: UpdateAccountPasswordRequest,
+    role: str = Depends(require_admin_or_dev),
+) -> GenericResponse:
+    """
+    Reset an account's password (admin function).
+    
+    Cannot change owner password through this endpoint.
+    Only admin, owner, or dev can reset passwords.
+    """
+    if not body.new_password or len(body.new_password) < 3:
+        raise HTTPException(status_code=400, detail="Password must be at least 3 characters.")
+    
+    try:
+        update_account_password(account_id, body.new_password)
+        return GenericResponse(message="Password updated successfully.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # ---------- DEPRECATED: Old Staff/Admin Password Endpoints ----------

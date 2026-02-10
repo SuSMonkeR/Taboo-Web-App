@@ -13,3 +13,6 @@ passlib[bcrypt]
 # JWT tokens
 python-jose[cryptography]
 requests
+
+# Email service
+resend

@@ -220,15 +220,31 @@ export default function ManageView() {
       .map((t) => t.deck_id)
       .filter(Boolean);
 
+    // 🚩 DEBUG LOGGING
+    console.log('=== FLAG WORKBOOK DEBUG ===');
+    console.log('Workbook name:', workbook.name);
+    console.log('Deck IDs from workbook.tabs:', deckIdsFromWorkbook);
+    console.log('Current decks array:', decks.map(d => ({ id: d.id, name: d.name })));
+    console.log('Current flaggedDeckIds:', flaggedDeckIds);
+    
+    // Check which deck IDs actually exist in decks array
+    const existingIds = deckIdsFromWorkbook.filter(id => decks.some(d => d.id === id));
+    const missingIds = deckIdsFromWorkbook.filter(id => !decks.some(d => d.id === id));
+    console.log('✅ Deck IDs that EXIST in decks:', existingIds);
+    console.log('❌ Deck IDs that are MISSING from decks:', missingIds);
+
     const allFlagged =
       deckIdsFromWorkbook.length > 0 &&
       deckIdsFromWorkbook.every((id) => flaggedDeckIds.includes(id));
 
     if (allFlagged) {
+      console.log('→ Unflagging all decks');
       setFlaggedDeckIds([]);
     } else {
+      console.log('→ Flagging these deck IDs:', deckIdsFromWorkbook);
       setFlaggedDeckIds(deckIdsFromWorkbook);
     }
+    console.log('=========================');
   };
 
   const handleDeleteWorkbook = async (workbookId) => {

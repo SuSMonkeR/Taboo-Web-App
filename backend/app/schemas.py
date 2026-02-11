@@ -15,9 +15,15 @@ class ImportFromUrlRequest(BaseModel):
     category: str | None = None
     taboo_words_per_card: int = 4
 
+
 class AddCategoryRequest(BaseModel):
     name: str
 
 
+class DeleteCategoryRequest(BaseModel):
+    name: str
+
+
 class MoveDeckRequest(BaseModel):
+    deck_id: str
     category: str

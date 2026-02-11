@@ -161,13 +161,13 @@ export async function deleteCategory(name) {
 }
 
 export async function moveDeck(deckId, category) {
-  const resp = await fetch(`${API_BASE}/library/decks/${deckId}/category`, {
-    method: "PATCH",
+  const resp = await fetch(`${API_BASE}/library/decks/move`, {
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...authHeaders(),
     },
-    body: JSON.stringify({ category }),
+    body: JSON.stringify({ deck_id: deckId, category }),
   });
   return handleJsonResponse(resp);
 }

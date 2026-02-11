@@ -5,7 +5,6 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
 
-# ✅ IMPORTANT: use the real modules, not .api-relative ones
 from app import db
 from app.models import Deck
 from app.schemas import (
@@ -13,8 +12,18 @@ from app.schemas import (
     ImportFromUrlRequest,
     AddCategoryRequest,
     MoveDeckRequest,
+    DeleteCategoryRequest,
 )
 from app.services.taboo_parser import fetch_csv_text, parse_deck_from_csv
+from app.services.crud_deck import (
+    get_all_decks,
+    create_deck,
+    get_deck_by_id,
+    update_deck,
+    update_deck_cards,
+    delete_deck,
+    move_deck_to_category,
+)
 
 
 router = APIRouter(
@@ -27,31 +36,28 @@ router = APIRouter(
 async def get_decks_state() -> LibraryStateOut:
     """
     Return all categories + decks for the Manage tab.
-
-    Also guarantees that 'Uncategorized' always exists.
+    
+    Categories from file, decks from MongoDB.
     """
-    state = db.load_library()
-
-    if "Uncategorized" not in state.categories:
-        state.categories.insert(0, "Uncategorized")
-        db.save_library(state)
-
-    return LibraryStateOut(categories=state.categories, decks=state.decks)
+    categories = db.load_categories()
+    
+    if "Uncategorized" not in categories:
+        categories.insert(0, "Uncategorized")
+        db.save_categories(categories)
+    
+    decks = get_all_decks()
+    
+    return LibraryStateOut(categories=categories, decks=decks)
 
 
 @router.post("/decks/refresh-from-source", response_model=LibraryStateOut)
 async def refresh_decks_from_source() -> LibraryStateOut:
     """
     Re-fetch all Google Sheets–backed decks from their source URLs.
-
-    Use this when you've updated your Google Sheets and want to sync
-    the stored cards in library.json.
     """
-    state = db.load_library()
-    dirty = False
-
-    for deck in state.decks:
-        # Only refresh Google Sheets decks that have a source URL
+    decks = get_all_decks()
+    
+    for deck in decks:
         if deck.source_type != "google_sheets":
             continue
         if not deck.source:
@@ -59,34 +65,25 @@ async def refresh_decks_from_source() -> LibraryStateOut:
 
         try:
             csv_text = await fetch_csv_text(deck.source)
-            # Use the deck's configured taboo_words_per_card (default is 4)
             cards = parse_deck_from_csv(csv_text, deck.taboo_words_per_card)
         except Exception as exc:
-            # Don't kill the whole refresh if one deck fails
             print(f"Failed to refresh deck {deck.id}: {exc}")
             continue
 
         if cards:
-            deck.cards = cards
-            deck.card_count = len(cards)
-            dirty = True
-
-    if dirty:
-        db.save_library(state)
-
-    return LibraryStateOut(categories=state.categories, decks=state.decks)
+            update_deck_cards(deck.id, cards)
+    
+    # Return fresh state
+    categories = db.load_categories()
+    decks = get_all_decks()
+    return LibraryStateOut(categories=categories, decks=decks)
 
 
 @router.post("/decks/from-url", response_model=LibraryStateOut)
 async def import_deck_from_url(body: ImportFromUrlRequest) -> LibraryStateOut:
     """
-    Import a deck from a Google Sheets/CSV URL and add it to the library.
-
-    This is where we actually parse the CSV into TabooCard objects and
-    store them on the Deck.
+    Import a deck from a Google Sheets/CSV URL and add it to MongoDB.
     """
-    # Pull raw data so we're safe even if the Pydantic model doesn't
-    # actually define taboo_words_per_card yet.
     taboo_words_per_card = body.taboo_words_per_card or 4
 
     try:
@@ -104,101 +101,96 @@ async def import_deck_from_url(body: ImportFromUrlRequest) -> LibraryStateOut:
             detail="No valid cards found in the provided CSV/Sheets URL.",
         )
 
-    state = db.load_library()
-
     # Either use provided name or make a generic one
-    deck_name = (body.name or "").strip() or _make_deck_name()
+    deck_name = (body.name or "").strip() or "Imported deck"
 
     # Category: if provided and it doesn't exist yet, add it
     category = (body.category or "").strip() or "Uncategorized"
-    if category not in state.categories:
-        state.categories.append(category)
+    categories = db.load_categories()
+    if category not in categories:
+        categories.append(category)
+        db.save_categories(categories)
 
-    deck = Deck(
-        id=str(uuid4()),
+    # Create deck in MongoDB
+    create_deck(
         name=deck_name,
-        category=category,
-        card_count=len(cards),
-        source_type="google_sheets",
-        source=body.url,
-        taboo_words_per_card=taboo_words_per_card,
         cards=cards,
+        source=body.url,
+        category=category,
     )
-
-    state.decks.append(deck)
-    db.save_library(state)
-    return LibraryStateOut(categories=state.categories, decks=state.decks)
-
-
-def _make_deck_name() -> str:
-    # Generic fallback if user didn't provide a name
-    return "Imported deck"
+    
+    # Return fresh state
+    categories = db.load_categories()
+    decks = get_all_decks()
+    return LibraryStateOut(categories=categories, decks=decks)
 
 
 @router.post("/categories", response_model=LibraryStateOut)
 async def add_category(body: AddCategoryRequest) -> LibraryStateOut:
-    state = db.load_library()
     name = body.name.strip()
     if not name:
         raise HTTPException(status_code=400, detail="Category name cannot be empty.")
 
-    if name not in state.categories:
-        state.categories.append(name)
-        db.save_library(state)
-
-    return LibraryStateOut(categories=state.categories, decks=state.decks)
-
-
-@router.delete("/categories/{name}", response_model=LibraryStateOut)
-async def delete_category(name: str) -> LibraryStateOut:
-    state = db.load_library()
-    if name == "Uncategorized":
-        raise HTTPException(
-            status_code=400,
-            detail="Cannot delete the 'Uncategorized' category.",
-        )
-
-    if name not in state.categories:
-        raise HTTPException(status_code=404, detail="Category not found.")
-
-    # Move decks back to 'Uncategorized'
-    for deck in state.decks:
-        if deck.category == name:
-            deck.category = "Uncategorized"
-
-    state.categories = [c for c in state.categories if c != name]
-    db.save_library(state)
-    return LibraryStateOut(categories=state.categories, decks=state.decks)
+    categories = db.add_category(name)
+    decks = get_all_decks()
+    
+    return LibraryStateOut(categories=categories, decks=decks)
 
 
-@router.patch("/decks/{deck_id}/category", response_model=LibraryStateOut)
-async def move_deck_category(deck_id: str, body: MoveDeckRequest) -> LibraryStateOut:
-    state = db.load_library()
-    if body.category not in state.categories:
-        raise HTTPException(status_code=400, detail="Target category does not exist.")
+@router.delete("/categories/{category_name}", response_model=LibraryStateOut)
+async def delete_category(category_name: str) -> LibraryStateOut:
+    """
+    Delete a category. All decks in this category will be moved to Uncategorized.
+    """
+    if category_name == "Uncategorized":
+        raise HTTPException(status_code=400, detail="Cannot delete Uncategorized category.")
+    
+    # Move all decks in this category to Uncategorized
+    decks = get_all_decks()
+    for deck in decks:
+        if deck.category == category_name:
+            move_deck_to_category(deck.id, "Uncategorized")
+    
+    # Remove category
+    categories = db.remove_category(category_name)
+    
+    # Return fresh state
+    decks = get_all_decks()
+    return LibraryStateOut(categories=categories, decks=decks)
 
-    found = False
-    for deck in state.decks:
-        if deck.id == deck_id:
-            deck.category = body.category
-            found = True
-            break
 
-    if not found:
+@router.post("/decks/move", response_model=LibraryStateOut)
+async def move_deck(body: MoveDeckRequest) -> LibraryStateOut:
+    """
+    Move a deck to a different category.
+    """
+    deck = get_deck_by_id(body.deck_id)
+    if not deck:
         raise HTTPException(status_code=404, detail="Deck not found.")
-
-    db.save_library(state)
-    return LibraryStateOut(categories=state.categories, decks=state.decks)
+    
+    categories = db.load_categories()
+    if body.category not in categories:
+        raise HTTPException(status_code=400, detail="Category does not exist.")
+    
+    move_deck_to_category(body.deck_id, body.category)
+    
+    # Return fresh state
+    decks = get_all_decks()
+    return LibraryStateOut(categories=categories, decks=decks)
 
 
 @router.delete("/decks/{deck_id}", response_model=LibraryStateOut)
-async def delete_deck(deck_id: str) -> LibraryStateOut:
-    state = db.load_library()
-    original_len = len(state.decks)
-    state.decks = [d for d in state.decks if d.id != deck_id]
-
-    if len(state.decks) == original_len:
+async def delete_deck_endpoint(deck_id: str) -> LibraryStateOut:
+    """
+    Delete a deck from MongoDB.
+    """
+    deck = get_deck_by_id(deck_id)
+    if not deck:
         raise HTTPException(status_code=404, detail="Deck not found.")
-
-    db.save_library(state)
-    return LibraryStateOut(categories=state.categories, decks=state.decks)
+    
+    delete_deck(deck_id)
+    
+    # Return fresh state
+    categories = db.load_categories()
+    decks = get_all_decks()
+    return LibraryStateOut(categories=categories, decks=decks)

@@ -10,11 +10,12 @@ from app.services.crud_workbook import (
     get_all_workbooks,
     update_workbook,
     get_workbook_by_id,
+    get_workbook_by_sheet_id,
     update_last_synced,
     delete_workbook,
 )
 from app.models import Workbook, WorkbookTab
-from app.services.crud_deck import create_deck, update_deck_cards
+from app.services.crud_deck import create_deck, update_deck_cards, delete_deck
 
 
 router = APIRouter(prefix="/admin/workbooks", tags=["workbooks"])
@@ -27,10 +28,24 @@ class WorkbookCreateRequest(BaseModel):
 @router.post("/add")
 def add_workbook(body: WorkbookCreateRequest):
   parsed = parse_workbook(body.sheet_url)
+  sheet_id = parsed["sheet_id"]
+
+  # Check if this workbook already exists
+  existing = get_workbook_by_sheet_id(sheet_id)
+  if existing:
+      # Delete the old workbook and its decks
+      for tab in existing.tabs or []:
+          if tab.deck_id:
+              delete_deck(tab.deck_id)
+      
+      # Delete the workbook itself
+      delete_workbook(str(existing.id))
+      
+      print(f"♻️  Replaced existing workbook: {existing.name}")
 
   # Build workbook object WITHOUT deck IDs yet
   workbook = Workbook(
-      workbook_id=parsed["sheet_id"],
+      workbook_id=sheet_id,
       name=parsed["name"],
       tabs=[
           WorkbookTab(
@@ -48,7 +63,7 @@ def add_workbook(body: WorkbookCreateRequest):
   # Now create decks for each tab and wire deck IDs back into the workbook
   for tab_data in parsed["tabs"]:
       tab_url = (
-          f"https://docs.google.com/spreadsheets/d/{parsed['sheet_id']}/edit"
+          f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit"
           f"#gid={tab_data['sheet_gid']}"
       )
 
@@ -113,7 +128,7 @@ def remove_workbook(workbook_id: str):
 
     This ONLY affects:
       - Mongo 'workbooks' collection
-      - Local library.json decks via db.delete_deck
+      - MongoDB 'decks' collection
 
     It does NOT and CANNOT modify or delete the actual Google Sheet.
     """
@@ -121,10 +136,10 @@ def remove_workbook(workbook_id: str):
     if not workbook:
         raise HTTPException(status_code=404, detail="Workbook not found.")
 
-    # Delete any linked decks from the local library
+    # Delete any linked decks from MongoDB
     for tab in workbook.tabs or []:
         if tab.deck_id:
-            db.delete_deck(tab.deck_id)
+            delete_deck(tab.deck_id)
 
     # Delete workbook document from Mongo
     delete_workbook(workbook_id)

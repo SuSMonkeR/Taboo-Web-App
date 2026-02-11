@@ -59,6 +59,17 @@ def get_workbook_by_id(workbook_id: str) -> Optional[Workbook]:
     return _doc_to_workbook(doc)
 
 
+def get_workbook_by_sheet_id(sheet_id: str) -> Optional[Workbook]:
+    """
+    Look up a workbook by its Google Sheets ID (workbook_id field).
+    This is the ID from the Google Sheets URL, not the MongoDB _id.
+    """
+    doc = workbooks.find_one({"workbook_id": sheet_id})
+    if not doc:
+        return None
+    return _doc_to_workbook(doc)
+
+
 def update_workbook(workbook_id: str, workbook: Workbook) -> None:
     """
     Update workbook metadata (name, tabs, etc.) for a given workbook_id.

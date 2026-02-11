@@ -1,5 +1,9 @@
 export default function Sidebar({ activeTab, onTabChange, role, displayName, onLogout }) {
+  // Admin can see Manage and Account Management
   const isAdminLike = role === "admin" || role === "dev" || role === "owner";
+  
+  // ONLY dev and owner can see Owner tab
+  const canAccessOwnerTab = role === "dev" || role === "owner";
 
   return (
     <aside className="sidebar">
@@ -47,7 +51,8 @@ export default function Sidebar({ activeTab, onTabChange, role, displayName, onL
           </button>
         )}
 
-        {isAdminLike && (
+        {/* OWNER TAB - ONLY dev and owner can see this */}
+        {canAccessOwnerTab && (
           <button
             className={
               "sidebar-btn" +

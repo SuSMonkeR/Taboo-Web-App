@@ -35,7 +35,7 @@ def get_password_reset_email_html(reset_link: str, ip_address: str = "Unknown") 
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }}
         .header {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #667eea;
             padding: 40px 30px;
             text-align: center;
         }}
@@ -68,18 +68,17 @@ def get_password_reset_email_html(reset_link: str, ip_address: str = "Unknown") 
         .cta-button {{
             display: inline-block;
             padding: 16px 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #ffffff !important;
+            background-color: #667eea;
+            color: #ffffff;
             text-decoration: none;
             border-radius: 8px;
             font-size: 18px;
             font-weight: 600;
             margin: 20px 0;
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-            transition: transform 0.2s;
         }}
         .cta-button:hover {{
-            transform: translateY(-2px);
+            background-color: #5568d3;
         }}
         .info-box {{
             background-color: #f8f9fa;
@@ -151,7 +150,7 @@ def get_password_reset_email_html(reset_link: str, ip_address: str = "Unknown") 
             <p>Click the button below to reset your password:</p>
             
             <center>
-                <a href="{reset_link}" class="cta-button">Reset My Password</a>
+                <a href="{reset_link}" class="cta-button" style="color: #ffffff !important; text-decoration: none !important;">Reset My Password</a>
             </center>
             
             <div class="info-box">
@@ -214,7 +213,7 @@ def get_password_reset_confirmation_email_html(display_name: str) -> str:
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }}
         .header {{
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background-color: #10b981;
             padding: 40px 30px;
             text-align: center;
         }}

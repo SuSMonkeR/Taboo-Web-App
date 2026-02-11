@@ -9,6 +9,7 @@ export default function MainApp({ role, token, displayName, onLogout }) {
   const [activeTab, setActiveTab] = useState("play"); // "play" | "manage" | "password-manager" | "owner"
 
   const isAdminLike = role === "admin" || role === "dev" || role === "owner";
+  const canAccessOwnerTab = role === "dev" || role === "owner";
 
   const handleTabChange = (tab) => {
     // Operators are not allowed to use non-play tabs
@@ -16,6 +17,13 @@ export default function MainApp({ role, token, displayName, onLogout }) {
       setActiveTab("play");
       return;
     }
+    
+    // ONLY dev and owner can access Owner tab
+    if (tab === "owner" && !canAccessOwnerTab) {
+      setActiveTab("play");
+      return;
+    }
+    
     setActiveTab(tab);
   };
 
@@ -28,8 +36,13 @@ export default function MainApp({ role, token, displayName, onLogout }) {
     // pass role + token down so the tab can authorize + call APIs
     content = <PasswordManagerTab role={role} token={token} />;
   } else if (activeTab === "owner") {
-    // pass role + token down so the tab can authorize + call APIs
-    content = <OwnerTab role={role} token={token} />;
+    // ONLY dev and owner can see this
+    if (canAccessOwnerTab) {
+      content = <OwnerTab role={role} token={token} />;
+    } else {
+      // If somehow admin tries to access, redirect to play
+      content = <PlayView />;
+    }
   }
 
   return (

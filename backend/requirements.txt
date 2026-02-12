@@ -14,5 +14,6 @@ passlib[bcrypt]
 python-jose[cryptography]
 requests
 
-# Email service
-resend
+# Gmail API
+google-auth
+google-api-python-client

@@ -36,10 +36,8 @@ from ..auth_repository import (
     get_staff_password_plain,
 )
 from ..email_service import (
-    send_admin_reset_email, 
-    send_owner_reset_email,
-    send_password_reset_email,  # NEW
-    send_password_reset_confirmation_email,  # NEW
+    send_password_reset_email,
+    send_password_reset_confirmation_email,
 )
 
 router = APIRouter(

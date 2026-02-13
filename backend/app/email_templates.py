@@ -153,6 +153,11 @@ def get_password_reset_email_html(reset_link: str, ip_address: str = "Unknown") 
                 <a href="{reset_link}" class="cta-button" style="color: #ffffff !important; text-decoration: none !important;">Reset My Password</a>
             </center>
             
+            <div class="info-box" style="margin-top: 20px;">
+                <p><strong>Button not working?</strong> Copy and paste this link into your browser:</p>
+                <p style="word-break: break-all; color: #667eea; font-size: 13px;">{reset_link}</p>
+            </div>
+            
             <div class="info-box">
                 <p><strong>⏰ This link expires in 1 hour</strong></p>
                 <p>For security, password reset links are only valid for a short time.</p>

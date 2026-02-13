@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from jose import JWTError, jwt
@@ -494,7 +494,8 @@ async def request_owner_reset() -> RequestOwnerResetResponse:
     
     # Create token and send email
     token = create_admin_reset_token()
-    send_owner_reset_email(owner_email, token)
+    reset_link = f"{settings.REACT_FRONTEND_URL.strip().rstrip('/') or 'http://localhost:5173'}/reset-password?token={token}"
+    send_password_reset_email(owner_email, reset_link)
     
     return RequestOwnerResetResponse(
         message=f"Password reset email sent to {owner_email}."
@@ -776,7 +777,7 @@ class ResetPasswordWithTokenRequest(BaseModel):
 
 
 @router.post("/request-password-reset", response_model=GenericResponse)
-async def request_password_reset(body: RequestPasswordResetRequest) -> GenericResponse:
+async def request_password_reset(body: RequestPasswordResetRequest, request: Request) -> GenericResponse:
     """
     Request a password reset link via email.
     
@@ -793,15 +794,19 @@ async def request_password_reset(body: RequestPasswordResetRequest) -> GenericRe
     
     # If token was created, send the email
     if token:
-        # Build full reset link
-        # In production, use your actual domain
-        frontend_url = settings.FRONTEND_URL if hasattr(settings, "FRONTEND_URL") else "http://localhost:5173"
+        frontend_url = settings.REACT_FRONTEND_URL.strip().rstrip("/") or "http://localhost:5173"
         reset_link = f"{frontend_url}/reset-password?token={token}"
         
+        # Get real IP (works behind Render's proxy)
+        ip_address = (
+            request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+            or request.headers.get("x-real-ip", "")
+            or (request.client.host if request.client else "Unknown")
+        )
+        
         try:
-            send_password_reset_email(email, reset_link)
+            send_password_reset_email(email, reset_link, ip_address)
         except Exception as e:
-            # Log error but don't expose to user
             print(f"Error sending password reset email: {e}")
     
     # ALWAYS return generic message (security - don't reveal if email exists)

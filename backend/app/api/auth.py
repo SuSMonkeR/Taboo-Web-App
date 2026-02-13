@@ -959,10 +959,11 @@ async def request_admin_reset(
         )
 
     token = create_admin_reset_token()
-    send_admin_reset_email(settings.ADMIN_RESET_EMAIL, token)
+    # NOTE: Old email method removed - token must be retrieved manually
+    print(f"[ADMIN RESET TOKEN]: {token}")
 
     return RequestAdminResetResponse(
-        message="Admin password reset email has been sent (if configured)."
+        message="Admin password reset token generated. Check server logs."
     )
 
 

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE } from '../api/library';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = API_BASE;
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
